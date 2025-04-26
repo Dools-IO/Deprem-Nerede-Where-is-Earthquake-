@@ -1,0 +1,57 @@
+# Deprem Veri Kaynakları (Earthquake Data Sources)
+
+## Avrupa ve Akdeniz Bölgesi (European-Mediterranean Region)
+
+### EMSC (European-Mediterranean Seismological Centre)
+- Ana Sayfa: https://www.emsc-csem.org
+- Gerçek Zamanlı Portal: https://www.seismicportal.eu/realtime.html
+- API Endpoint: https://www.seismicportal.eu/fdsnws/event/1/query
+
+### KOERI (Kandilli Observatory and Earthquake Research Institute)
+- Ana Sayfa: http://www.koeri.boun.edu.tr
+- Son Depremler: http://www.koeri.boun.edu.tr/scripts/lst0.asp
+
+### ESM (European Strong-Motion Database)
+- Ana Sayfa: https://esm-db.eu
+- API Endpoint: https://esm-db.eu/fdsnws/event/1/query
+
+## Amerika Birleşik Devletleri (United States)
+
+### USGS (United States Geological Survey)
+- Ana Sayfa: https://www.usgs.gov/programs/earthquake-hazards
+- GeoJSON Feed: https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson
+- Harita: https://earthquake.usgs.gov/earthquakes/map
+
+### IRIS (Incorporated Research Institutions for Seismology)
+- Ana Sayfa: https://www.iris.edu
+- Sismik Monitör: https://www.iris.edu/app/seismic-monitor
+- API Endpoint: http://service.iris.edu/fdsnws/event/1/query
+
+## Asya-Pasifik Bölgesi (Asia-Pacific Region)
+
+### JMA (Japan Meteorological Agency)
+- Ana Sayfa: https://www.jma.go.jp
+- Deprem Bilgileri: https://www.data.jma.go.jp/multi/quake/index.html?lang=en
+- JSON Feed: https://www.jma.go.jp/bosai/quake/data/list.json
+
+### GeoNet NZ (New Zealand)
+- Ana Sayfa: https://www.geonet.org.nz
+- Son Depremler: https://www.geonet.org.nz/earthquake/unnoticeable
+- API: https://api.geonet.org.nz
+
+### Geoscience Australia
+- Ana Sayfa: https://earthquakes.ga.gov.au
+- WFS API: https://earthquakes.ga.gov.au/geoserver/earthquakes/wfs
+
+## Latin Amerika (Latin America)
+
+### SSN México (Servicio Sismológico Nacional)
+- Ana Sayfa: http://www.ssn.unam.mx
+- İngilizce Portal: http://www.ssn.unam.mx/english/seismicity/latest-earthquakes
+- RSS Feed: http://www.ssn.unam.mx/rss/ultimos-sismos.xml
+
+### INGV (Istituto Nazionale di Geofisica e Vulcanologia)
+- Ana Sayfa: https://terremoti.ingv.it
+- İngilizce Portal: https://terremoti.ingv.it/?lang=en
+https://webservices.ingv.it/fdsnws/event/1/query?starttime=2024-04-20&endtime=2024-04-27&minmag=2&format=json
+
