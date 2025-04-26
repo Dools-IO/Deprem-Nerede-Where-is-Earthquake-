@@ -1,0 +1,1 @@
+# Deprem-Nerede-Where-is-Earthquake-
