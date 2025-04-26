@@ -5,7 +5,6 @@ import { fetchKOERIEarthquakes } from './koeri';
 import { fetchUSGSEarthquakes } from './usgs';
 import { fetchESMEarthquakes } from './esm';
 import { fetchJMAEarthquakes } from './jma';
-import { fetchFDSNEarthquakes } from './fdsnws';
 import { fetchGAEarthquakes } from './ga';
 import { fetchGeoNetEarthquakes } from './geonet';
 import { fetchSSNEarthquakes } from './ssn';
@@ -19,7 +18,6 @@ export {
   fetchUSGSEarthquakes, 
   fetchESMEarthquakes,
   fetchJMAEarthquakes,
-  fetchFDSNEarthquakes,
   fetchGAEarthquakes,
   fetchGeoNetEarthquakes,
   fetchSSNEarthquakes,
@@ -97,14 +95,13 @@ export async function fetchAllEarthquakes(): Promise<Earthquake[]> {
       fetchIRISEarthquakes(),
       fetchESMEarthquakes(),
       fetchJMAEarthquakes(),
-      fetchFDSNEarthquakes(),
       fetchGAEarthquakes(),
       fetchGeoNetEarthquakes(),
       fetchSSNEarthquakes(),
       fetchINGVEarthquakes()
     ]);
 
-    const sources = ['EMSC', 'KOERI', 'USGS', 'IRIS', 'ESM', 'JMA', 'FDSNWS', 'GA', 'GeoNet', 'SSN', 'INGV'];
+    const sources = ['EMSC', 'KOERI', 'USGS', 'IRIS', 'ESM', 'JMA', 'GA', 'GeoNet', 'SSN', 'INGV'];
     
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
