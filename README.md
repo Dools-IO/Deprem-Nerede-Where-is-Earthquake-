@@ -8,7 +8,8 @@ Veriler yalnızca kurumların resmi API'lerinden ve kendi yayınladıkları besl
 - **Canlı akış:** Tarayıcı, EMSC'nin resmi WebSocket servisine bağlanır; dünyadaki her yeni deprem saniyeler içinde haritaya düşer.
 - **Birleşik akış:** Sunucu 16 kaynağı kendi aralıklarıyla (30–120 sn) çeker, tek formata çevirir ve aynı depremi raporlayan kayıtları birleştirir (zaman, mesafe ve büyüklük toleransıyla). Tarayıcı bu akışı 30 sn'de bir yeniler; sekme arka plandayken durur.
 - **Önbellek:** Kaynak başına bellek içi önbellek, eş zamanlı istekleri tek yukarı akış isteğinde toplar, hata olursa son sağlam veriyi göstermeye devam eder. API yanıtları CDN'de 30 sn önbelleklenir; dış kaynaklara giden istek sayısı ziyaretçi sayısından bağımsızdır.
-- **Harita:** Leaflet + canvas çizim (binlerce işaret akıcı), yalnızca değişen işaretler güncellenir.
+- **Hızlı ilk açılış:** Sunucu açılır açılmaz (`instrumentation.ts`) tüm kaynakları çekmeye başlar. Önbellek henüz boşken gelen ilk istek yavaş bir kaynağı en fazla 1,5 sn bekler; yetişemeyen kaynak `pending: true` olarak işaretlenir ve hazır olan verilerle hemen yanıt verilir. Tarayıcı bekleyen kaynak varsa 3 sn sonra tekrar sorar. Hiç başarılı olamamış ama hata veren bir kaynak istekleri bekletmez, arka planda yeniden denenir. Ölçüm (production): soğuk ilk istek ~1,7 sn, sonraki istekler ~120 ms.
+- **Harita:** Leaflet + canvas çizim (binlerce işaret akıcı), yalnızca değişen işaretler güncellenir. Altlık anahtarsız Esri koyu gri haritadır; kareler yüklenemezse otomatik olarak OpenStreetMap'e geçer.
 
 ## Kaynaklar
 
@@ -37,6 +38,8 @@ Yeni bir FDSN servisi eklemek için `src/lib/sources/fetchers.ts` içinde `fdsnS
 `src/lib/sourceInfo.ts` içinde bir kayıt yeterlidir. FDSN kayıt listesi: https://www.fdsn.org/datacenters/
 
 ## Kurulum
+
+Node.js 18.18 veya üzeri gerekir (20+ önerilir).
 
 ```bash
 npm install
@@ -69,12 +72,16 @@ src/
   lib/
     sources/parsers.ts       Her kaynağın yanıtını ortak tipe çeviren saf fonksiyonlar
     sources/fetchers.ts      Kaynak URL'leri, zaman aşımı, TTL
-    sources/index.ts         Önbellek ve birleştirme (yalnız sunucu)
+    sources/index.ts         Önbellek, ilk açılış ısıtması ve birleştirme (yalnız sunucu)
+    sourceInfo.ts            Kaynak adları, bölgeleri ve birleştirme öncelikleri
     merge.ts                 Kaynaklar arası tekrar birleştirme
+    filters.ts               API sorgu parametreleri (minmag, source, since, limit)
+    format.ts                Tarih, büyüklük ve harita işaret renk/boyut yardımcıları
+  instrumentation.ts         Sunucu açılışında önbelleği ısıtır
   middleware.ts              /api hız sınırı
 ```
 
-Harita altlığı: © OpenStreetMap katkıcıları, © CARTO.
+Harita altlığı: © Esri (Esri, HERE, Garmin), © OpenStreetMap katkıcıları.
 
 ## Lisans
 
