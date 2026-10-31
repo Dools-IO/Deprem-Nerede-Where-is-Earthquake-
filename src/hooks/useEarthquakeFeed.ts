@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Earthquake, EarthquakeFeed, SourceStatus } from '@/types';
 import { isValidEarthquake, mergeEarthquakes } from '@/lib/merge';
 import { useEmscLive, type LiveStatus } from './useEmscLive';
@@ -125,10 +125,10 @@ export function useEarthquakeFeed(initial: EarthquakeFeed | null): FeedState {
     return () => clearInterval(id);
   }, [windowHours]);
 
-  const [earthquakes, setEarthquakes] = useState<Earthquake[]>(initial?.earthquakes ?? []);
-  useEffect(() => {
+  // Ayrı bir state + effect yerine aynı render içinde hesapla (fazladan bir tam render turu olmasın)
+  const earthquakes = useMemo(() => {
     const base = feed?.earthquakes ?? [];
-    setEarthquakes(liveEvents.length ? mergeEarthquakes([...base, ...liveEvents]) : base);
+    return liveEvents.length ? mergeEarthquakes([...base, ...liveEvents]) : base;
   }, [feed, liveEvents]);
 
   return {

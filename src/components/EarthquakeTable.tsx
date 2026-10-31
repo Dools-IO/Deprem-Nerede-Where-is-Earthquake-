@@ -8,7 +8,7 @@ import { useNow } from '@/hooks/useNow';
 import { SOURCES, isSourceId } from '@/lib/sourceInfo';
 import { formatDateTime, formatDepth, formatMagnitude, formatRelative, magnitudeColor } from '@/lib/format';
 
-const PAGE = 100;
+const PAGE = 50;
 
 export default function EarthquakeTable({ initial }: { initial: EarthquakeFeed | null }) {
   const feed = useEarthquakeFeed(initial);

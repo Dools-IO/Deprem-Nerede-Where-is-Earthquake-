@@ -41,7 +41,7 @@ FDSN veri merkezleri listesi: https://www.fdsn.org/datacenters/
 
 ## Kurulum
 
-Node.js 18.18 veya üzeri gerekir (20+ önerilir).
+Node.js 22 veya üzeri gerekir (24 LTS önerilir).
 
 ```bash
 npm install
