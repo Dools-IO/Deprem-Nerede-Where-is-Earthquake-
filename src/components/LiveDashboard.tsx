@@ -1,8 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useMemo, useState } from 'react';
-import type { EarthquakeFeed, SourceId } from '@/types';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import type { Earthquake, EarthquakeFeed, SourceId } from '@/types';
 import { useEarthquakeFeed } from '@/hooks/useEarthquakeFeed';
 import { useNow } from '@/hooks/useNow';
 import { SOURCES } from '@/lib/sourceInfo';
@@ -20,6 +20,8 @@ const TIME_FILTERS = [
   { hours: 24, label: '24 sa' },
 ];
 const LIST_LIMIT = 200;
+// Liste önce kısa çizilir; mobilde açılışı hızlandırır, istenirse genişletilir
+const LIST_STEP = 50;
 
 export default function LiveDashboard({ initial }: { initial: EarthquakeFeed | null }) {
   const feed = useEarthquakeFeed(initial);
@@ -28,12 +30,14 @@ export default function LiveDashboard({ initial }: { initial: EarthquakeFeed | n
   const [hours, setHours] = useState(24);
   const [hidden, setHidden] = useState<Set<SourceId>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [panelOpen, setPanelOpen] = useState(true);
+  // Panel kapalı başlar, geniş ekranda açılır: dar ekranda liste hiç çizilmez
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [listCount, setListCount] = useState(LIST_STEP);
+  const showMore = useCallback(() => setListCount((c) => Math.min(c + LIST_STEP, LIST_LIMIT)), []);
   const [showSources, setShowSources] = useState(false);
 
-  // Dar ekranda harita görünsün diye panel kapalı başlar
   useEffect(() => {
-    if (window.matchMedia('(max-width: 767px)').matches) setPanelOpen(false);
+    if (window.matchMedia('(min-width: 768px)').matches) setPanelOpen(true);
   }, []);
 
   const visible = useMemo(() => {
@@ -179,51 +183,18 @@ export default function LiveDashboard({ initial }: { initial: EarthquakeFeed | n
           </div>
         </div>
 
-        <ol className="flex-1 overflow-y-auto">
-          {visible.slice(0, LIST_LIMIT).map((eq) => {
-            const isNew = feed.arrivals.has(eq.id);
-            return (
-              <li key={eq.id}>
-                <button
-                  onClick={() => setSelectedId(eq.id)}
-                  className={`flex w-full items-center gap-3 border-b border-slate-800/70 px-3 py-2 text-left hover:bg-slate-800/70 ${
-                    selectedId === eq.id ? 'bg-slate-800' : ''
-                  } ${isNew ? 'eq-new' : ''}`}
-                >
-                  <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm font-bold text-slate-950"
-                    style={{ background: magnitudeColor(eq.magnitude) }}
-                  >
-                    {formatMagnitude(eq.magnitude)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{eq.location || 'Konum belirtilmemiş'}</span>
-                    <span className="block text-xs text-slate-400">
-                      <time dateTime={eq.time} title={formatDateTime(eq.time)}>
-                        {now ? formatRelative(eq.time, now) : formatDateTime(eq.time)}
-                      </time>
-                      {' · '}
-                      {formatDepth(eq.depth)}
-                      {' · '}
-                      {[eq.source, ...(eq.alsoReportedBy ?? [])].map((s) => SOURCES[s]?.name ?? s).join(', ')}
-                    </span>
-                  </span>
-                  {isNew && <span className="rounded bg-sky-500 px-1.5 py-0.5 text-[10px] font-bold text-white">YENİ</span>}
-                </button>
-              </li>
-            );
-          })}
-          {visible.length === 0 && (
-            <li className="p-6 text-center text-sm text-slate-400">
-              {feed.updatedAt ? 'Bu filtrelerle deprem yok.' : 'Veriler yükleniyor…'}
-            </li>
-          )}
-          {visible.length > LIST_LIMIT && (
-            <li className="p-3 text-center text-xs text-slate-500">
-              İlk {LIST_LIMIT} kayıt listeleniyor; tamamı haritada.
-            </li>
-          )}
-        </ol>
+        {panelOpen && (
+          <EarthquakeList
+            items={visible}
+            count={listCount}
+            onMore={showMore}
+            now={now}
+            arrivals={feed.arrivals}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            loaded={!!feed.updatedAt}
+          />
+        )}
       </aside>
     </div>
   );
@@ -268,3 +239,83 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
     </button>
   );
 }
+
+interface ListProps {
+  items: Earthquake[];
+  count: number;
+  onMore: () => void;
+  now: number | null;
+  arrivals: Map<string, number>;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  loaded: boolean;
+}
+
+const EarthquakeList = memo(function EarthquakeList({
+  items,
+  count,
+  onMore,
+  now,
+  arrivals,
+  selectedId,
+  onSelect,
+  loaded,
+}: ListProps) {
+  const shown = Math.min(count, LIST_LIMIT);
+  // pb-12: harita atıf şeridi (mobilde iki satır) listenin son satırını örtmesin
+  return (
+    <ol className="flex-1 overflow-y-auto pb-12">
+      {items.slice(0, shown).map((eq) => {
+        const isNew = arrivals.has(eq.id);
+        return (
+          <li key={eq.id}>
+            <button
+              onClick={() => onSelect(eq.id)}
+              className={`flex w-full items-center gap-3 border-b border-slate-800/70 px-3 py-2 text-left hover:bg-slate-800/70 ${
+                selectedId === eq.id ? 'bg-slate-800' : ''
+              } ${isNew ? 'eq-new' : ''}`}
+            >
+              <span
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm font-bold text-slate-950"
+                style={{ background: magnitudeColor(eq.magnitude) }}
+              >
+                {formatMagnitude(eq.magnitude)}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">{eq.location || 'Konum belirtilmemiş'}</span>
+                <span className="block text-xs text-slate-400">
+                  <time dateTime={eq.time} title={formatDateTime(eq.time)}>
+                    {now ? formatRelative(eq.time, now) : formatDateTime(eq.time)}
+                  </time>
+                  {' · '}
+                  {formatDepth(eq.depth)}
+                  {' · '}
+                  {[eq.source, ...(eq.alsoReportedBy ?? [])].map((s) => SOURCES[s]?.name ?? s).join(', ')}
+                </span>
+              </span>
+              {isNew && <span className="rounded bg-sky-500 px-1.5 py-0.5 text-[10px] font-bold text-white">YENİ</span>}
+            </button>
+          </li>
+        );
+      })}
+      {items.length === 0 && (
+        <li className="p-6 text-center text-sm text-slate-400">
+          {loaded ? 'Bu filtrelerle deprem yok.' : 'Veriler yükleniyor…'}
+        </li>
+      )}
+      {items.length > shown && shown < LIST_LIMIT && (
+        <li className="p-2">
+          <button
+            onClick={onMore}
+            className="w-full rounded-md bg-slate-800 py-2 text-xs text-slate-300 hover:bg-slate-700 hover:text-white"
+          >
+            Daha fazla göster ({items.length.toLocaleString('tr-TR')} kayıttan {shown})
+          </button>
+        </li>
+      )}
+      {items.length > LIST_LIMIT && shown >= LIST_LIMIT && (
+        <li className="p-3 text-center text-xs text-slate-500">İlk {LIST_LIMIT} kayıt listeleniyor; tamamı haritada.</li>
+      )}
+    </ol>
+  );
+});

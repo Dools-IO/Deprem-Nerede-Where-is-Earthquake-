@@ -15,6 +15,8 @@ interface Props {
 }
 
 const HOUR = 3600_000;
+/** Bir karede eklenecek en fazla işaret */
+const MARKER_CHUNK = 1500;
 
 /** Yaşa göre saydamlık: son 1 saat parlak, 24 saate doğru solar */
 function opacityFor(time: string, now: number): number {
@@ -71,10 +73,31 @@ function buildPopup(eq: Earthquake): HTMLElement {
   return root;
 }
 
+interface MarkerEntry {
+  marker: L.CircleMarker;
+  eq: Earthquake;
+  /** Çizimi etkileyen alanların özeti; değişmediyse işarete hiç dokunulmaz */
+  sig: string;
+  opacity: number;
+}
+
+const drawSignature = (eq: Earthquake) =>
+  `${eq.latitude},${eq.longitude},${eq.magnitude},${eq.alsoReportedBy?.length ? 1 : 0}`;
+
+function styleFor(eq: Earthquake, now: number): L.CircleMarkerOptions {
+  return {
+    radius: magnitudeRadius(eq.magnitude),
+    color: eq.alsoReportedBy?.length ? '#e2e8f0' : magnitudeColor(eq.magnitude),
+    weight: eq.alsoReportedBy?.length ? 1.5 : 1,
+    fillColor: magnitudeColor(eq.magnitude),
+    fillOpacity: opacityFor(eq.time, now),
+  };
+}
+
 export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const markers = useRef(new Map<string, { marker: L.CircleMarker; eq: Earthquake }>());
+  const markers = useRef(new Map<string, MarkerEntry>());
   const pulses = useRef(new Map<string, L.Marker>());
   const skipFly = useRef(false);
   const onSelectRef = useRef(onSelect);
@@ -90,13 +113,17 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
       worldCopyJump: true,
       preferCanvas: true, // binlerce işaret için SVG yerine tek bir canvas
       zoomControl: false,
+      // Kare geçiş animasyonu her karede tüm karelerin saydamlığını günceller; mobilde zoom'u takıldırıyordu
+      fadeAnimation: false,
     });
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
     // Anahtar gerektirmeyen koyu altlık (Esri). Ulaşılamazsa OpenStreetMap'e düşer.
+    // Zoom sırasında ara seviyelerin karelerini indirme; zoom bitince tek seferde yükle
+    const tileOptions: L.TileLayerOptions = { maxZoom: 16, updateWhenZooming: false, keepBuffer: 1 };
     const esriAttribution = 'Tiles &copy; <a href="https://www.esri.com">Esri</a> &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors';
     const base = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-      { attribution: esriAttribution, maxZoom: 16 },
+      { ...tileOptions, attribution: esriAttribution },
     ).addTo(map);
     // Yer adları altlığın üstünde, deprem işaretlerinin altında
     map.createPane('labels');
@@ -104,7 +131,7 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
     map.getPane('labels')!.style.pointerEvents = 'none';
     const labels = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
-      { maxZoom: 16, pane: 'labels' },
+      { ...tileOptions, pane: 'labels' },
     ).addTo(map);
     let tileErrors = 0;
     base.on('tileerror', () => {
@@ -113,6 +140,7 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
       map.removeLayer(labels);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        ...tileOptions,
         maxZoom: 19,
       }).addTo(map);
     });
@@ -136,37 +164,29 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
     const now = Date.now();
     const seen = new Set<string>();
 
-    // Küçükler önce çizilsin ki büyükler üstte kalsın
-    const ordered = [...earthquakes].sort((a, b) => a.magnitude - b.magnitude);
-    for (const eq of ordered) {
+    // Her yenilemede JSON'dan yeni nesneler gelir; kimlik yerine içerik karşılaştırılır.
+    // Böylece değişmeyen binlerce işarete dokunulmaz, canvas yalnızca gerektiğinde çizilir.
+    const added: Earthquake[] = [];
+    for (const eq of earthquakes) {
       seen.add(eq.id);
-      const existing = markers.current.get(eq.id);
-      const style: L.CircleMarkerOptions = {
-        radius: magnitudeRadius(eq.magnitude),
-        color: eq.alsoReportedBy?.length ? '#e2e8f0' : magnitudeColor(eq.magnitude),
-        weight: eq.alsoReportedBy?.length ? 1.5 : 1,
-        fillColor: magnitudeColor(eq.magnitude),
-        fillOpacity: opacityFor(eq.time, now),
-      };
-      if (existing) {
-        if (existing.eq !== eq) {
-          existing.marker.setLatLng([eq.latitude, eq.longitude]).setStyle(style).setRadius(style.radius!);
-          existing.marker.setPopupContent(buildPopup(eq));
-          existing.eq = eq;
-        } else {
-          existing.marker.setStyle({ fillOpacity: style.fillOpacity });
-        }
-        existing.marker.bringToFront();
+      const entry = markers.current.get(eq.id);
+      if (!entry) {
+        added.push(eq);
+        continue;
+      }
+      entry.eq = eq; // popup her açılışta güncel kaydı kullanır
+      const sig = drawSignature(eq);
+      if (sig !== entry.sig) {
+        const style = styleFor(eq, now);
+        entry.marker.setLatLng([eq.latitude, eq.longitude]).setStyle(style).setRadius(style.radius!);
+        entry.sig = sig;
+        entry.opacity = style.fillOpacity!;
       } else {
-        const marker = L.circleMarker([eq.latitude, eq.longitude], style)
-          .bindPopup(() => buildPopup(eq), { maxWidth: 320, className: 'eq-leaflet-popup' })
-          .on('click', (e) => {
-            L.DomEvent.stopPropagation(e);
-            skipFly.current = true;
-            onSelectRef.current(eq.id);
-          })
-          .addTo(map);
-        markers.current.set(eq.id, { marker, eq });
+        const opacity = opacityFor(eq.time, now);
+        if (opacity !== entry.opacity) {
+          entry.marker.setStyle({ fillOpacity: opacity });
+          entry.opacity = opacity;
+        }
       }
     }
     for (const [id, { marker }] of markers.current) {
@@ -176,8 +196,51 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
       }
     }
 
+    // Yeni işaretler parça parça eklenir: ilk açılışta binlerce işaret ana iş parçacığını
+    // tek seferde kilitlemez, harita ve panel hemen tepki verir.
+    let cancelled = false;
+    if (added.length) {
+      // Küçükler önce eklensin ki büyükler üstte kalsın
+      added.sort((a, b) => a.magnitude - b.magnitude);
+      const hadMarkers = markers.current.size > 0;
+      const addChunk = (from: number) => {
+        if (cancelled) return;
+        const to = Math.min(from + MARKER_CHUNK, added.length);
+        for (let i = from; i < to; i++) {
+          const eq = added[i];
+          if (markers.current.has(eq.id)) continue;
+          const style = styleFor(eq, now);
+          const entry: MarkerEntry = {
+            marker: L.circleMarker([eq.latitude, eq.longitude], style),
+            eq,
+            sig: drawSignature(eq),
+            opacity: style.fillOpacity!,
+          };
+          entry.marker
+            .bindPopup(() => buildPopup(entry.eq), { maxWidth: 320, className: 'eq-leaflet-popup' })
+            .on('click', (e) => {
+              L.DomEvent.stopPropagation(e);
+              skipFly.current = true;
+              onSelectRef.current(entry.eq.id);
+            })
+            .addTo(map);
+          markers.current.set(eq.id, entry);
+        }
+        if (to < added.length) {
+          requestAnimationFrame(() => addChunk(to));
+        } else if (hadMarkers || added.length > MARKER_CHUNK) {
+          // Sonradan eklenen küçük işaretler büyükleri örtmesin: yalnızca M4+ öne alınır (az sayıda)
+          [...markers.current.values()]
+            .filter((m) => m.eq.magnitude >= 4)
+            .sort((a, b) => a.eq.magnitude - b.eq.magnitude)
+            .forEach((m) => m.marker.bringToFront());
+        }
+      };
+      addChunk(0);
+    }
+
     // Son 1 saatte olan veya sayfa açıkken gelen M2.5+ depremler için nabız halkası
-    const pulseIds = new Set(
+    const pulseEqs = new Map(
       earthquakes
         .filter(
           (eq) =>
@@ -185,18 +248,16 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
             (now - Date.parse(eq.time) < HOUR && eq.magnitude >= 2.5),
         )
         .slice(0, 60)
-        .map((eq) => eq.id),
+        .map((eq) => [eq.id, eq] as const),
     );
     for (const [id, m] of pulses.current) {
-      if (!pulseIds.has(id)) {
+      if (!pulseEqs.has(id)) {
         m.remove();
         pulses.current.delete(id);
       }
     }
-    for (const id of pulseIds) {
+    for (const [id, eq] of pulseEqs) {
       if (pulses.current.has(id)) continue;
-      const eq = markers.current.get(id)?.eq;
-      if (!eq) continue;
       const size = Math.round(magnitudeRadius(eq.magnitude) * 2);
       const icon = L.divIcon({
         className: 'eq-pulse-icon',
@@ -206,6 +267,9 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
       const m = L.marker([eq.latitude, eq.longitude], { icon, interactive: false, keyboard: false }).addTo(map);
       pulses.current.set(id, m);
     }
+    return () => {
+      cancelled = true;
+    };
   }, [earthquakes, arrivals]);
 
   // Listeden seçilen depreme uç ve popup'ını aç
