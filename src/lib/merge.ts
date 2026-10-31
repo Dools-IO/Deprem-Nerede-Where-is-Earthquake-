@@ -94,7 +94,11 @@ export function mergeEarthquakes(input: Earthquake[]): Earthquake[] {
   return result;
 }
 
-export function isValidEarthquake(eq: Earthquake): boolean {
+/** Saat farkı payı: bundan daha ileri tarihli kayıt saat dilimi hatasıdır, listenin tepesine yapışmasın */
+const FUTURE_TOLERANCE_MS = 10 * 60_000;
+
+export function isValidEarthquake(eq: Earthquake, now = Date.now()): boolean {
+  const time = Date.parse(eq.time);
   return (
     Number.isFinite(eq.latitude) &&
     Number.isFinite(eq.longitude) &&
@@ -108,6 +112,7 @@ export function isValidEarthquake(eq: Earthquake): boolean {
     eq.magnitude < 10.5 &&
     eq.depth > -10 &&
     eq.depth < 800 &&
-    Number.isFinite(Date.parse(eq.time))
+    Number.isFinite(time) &&
+    time <= now + FUTURE_TOLERANCE_MS
   );
 }

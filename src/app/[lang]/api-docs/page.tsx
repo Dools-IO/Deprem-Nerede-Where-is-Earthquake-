@@ -3,6 +3,7 @@ import { SOURCES } from '@/lib/sourceInfo';
 import { MIN_POLL_SECONDS, PUBLIC_HISTORY_MAX_DAYS, PUBLIC_MAX_RECORDS, RATE_LIMITS } from '@/lib/apiPolicy';
 import { getDictionary } from '@/i18n';
 import { pageMetadata, resolveLocale } from '@/i18n/metadata';
+import { PageHeader } from '@/components/ui';
 
 type Params = { params: Promise<{ lang: string }> };
 
@@ -12,24 +13,36 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 const Code = ({ children }: { children: string }) => (
-  <pre className="mb-6 overflow-x-auto rounded-lg bg-slate-900 p-4 text-sm text-slate-200">{children.trim()}</pre>
+  <pre className="mb-6 overflow-x-auto rounded-xl border border-white/[0.06] bg-ink-950 p-4 font-mono text-[13px] leading-relaxed text-sky-100/90">{children.trim()}</pre>
+);
+
+const H2 = ({ id, children }: { id?: string; children: React.ReactNode }) => (
+  <h2 id={id} className="mb-3 mt-12 scroll-mt-24 font-display text-2xl font-bold tracking-tight text-white">{children}</h2>
+);
+
+/** Uç nokta başlığı: GET rozeti + yol */
+const Endpoint = ({ path }: { path: string }) => (
+  <h2 className="mb-3 mt-12 flex items-center gap-3 font-mono text-lg font-semibold text-white">
+    <span className="rounded-lg bg-emerald-500/15 px-2 py-0.5 text-xs font-bold tracking-wide text-emerald-400">GET</span>
+    {path}
+  </h2>
 );
 
 export default async function ApiDocsPage({ params }: Params) {
   const locale = await resolveLocale(params);
   const t = getDictionary(locale).api;
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 text-slate-300">
-      <h1 className="mb-4 text-3xl font-bold text-white">{t.title}</h1>
-      <p className="mb-6">{t.intro}</p>
+    <div className="page-bg">
+    <div className="mx-auto max-w-4xl px-4 py-8 leading-relaxed text-slate-300 md:py-12">
+      <PageHeader eyebrow={t.eyebrow} title={t.title} subtitle={t.intro} />
 
-      <ul className="mb-4 list-disc space-y-1 pl-6">
-        <li>{t.window}</li>
-        <li>{t.cache}</li>
-      </ul>
+      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+        <div className="card p-4 text-sm">{t.window}</div>
+        <div className="card p-4 text-sm">{t.cache}</div>
+      </div>
 
-      <h2 className="mb-2 mt-8 text-2xl font-semibold text-white">{t.limitsHeading}</h2>
-      <ul className="mb-8 list-disc space-y-1 pl-6">
+      <H2>{t.limitsHeading}</H2>
+      <ul className="card mb-8 space-y-2 p-5 text-sm marker:text-quake-500 [&>li]:ml-4 [&>li]:list-disc [&>li]:pl-1">
         <li>{t.limitPublic(RATE_LIMITS.public.perMinute, RATE_LIMITS.public.perDay)}</li>
         <li>{t.limitHistory(RATE_LIMITS.publicHistory.perMinute, RATE_LIMITS.publicHistory.perDay, PUBLIC_HISTORY_MAX_DAYS)}</li>
         <li>{t.limitRecords(PUBLIC_MAX_RECORDS)}</li>
@@ -38,7 +51,7 @@ export default async function ApiDocsPage({ params }: Params) {
         <li>{t.responseLicenses}</li>
       </ul>
 
-      <h2 className="mb-2 mt-8 text-2xl font-semibold text-white">GET /api/earthquakes</h2>
+      <Endpoint path="/api/earthquakes" />
       <p className="mb-3">{t.earthquakesDesc}</p>
       <Code>{`
 GET /api/earthquakes?minmag=4&source=emsc,usgs&since=2026-10-30T12:00:00Z&limit=100
@@ -68,8 +81,8 @@ GET /api/earthquakes?minmag=4&source=emsc,usgs&since=2026-10-30T12:00:00Z&limit=
   "terms": { "url": "/api-docs#terms", "summary": "..." }
 }
 `}</Code>
-      <table className="mb-8 w-full text-sm">
-        <tbody className="[&_td]:border-t [&_td]:border-slate-800 [&_td]:py-1.5 [&_td]:pr-4">
+      <table className="card mb-8 w-full overflow-hidden text-sm [&_code]:text-quake-400 [&_td]:px-4">
+        <tbody className="[&_td]:border-t [&_td]:border-white/[0.04] [&_td]:py-2.5">
           <tr><td><code>minmag</code></td><td>{t.params.minmag}</td></tr>
           <tr><td><code>source</code></td><td>{t.params.source}</td></tr>
           <tr><td><code>since</code></td><td>{t.params.since}</td></tr>
@@ -77,24 +90,24 @@ GET /api/earthquakes?minmag=4&source=emsc,usgs&since=2026-10-30T12:00:00Z&limit=
         </tbody>
       </table>
 
-      <h2 className="mb-2 mt-8 text-2xl font-semibold text-white">GET /api/v1/&#123;{t.sourcePath}&#125;</h2>
+      <Endpoint path={`/api/v1/{${t.sourcePath}}`} />
       <p className="mb-3">{t.v1Desc}</p>
       <Code>{`
 { "success": true, "source": "usgs", "count": 312, "lastUpdated": "...", "data": [ ... ] }
 `}</Code>
 
-      <h2 className="mb-2 mt-8 text-2xl font-semibold text-white">GET /api/history</h2>
+      <Endpoint path="/api/history" />
       <p className="mb-3">{t.historyDesc}</p>
       <Code>{`
 GET /api/history?from=2026-10-01&to=2026-10-08&minmag=4
 { "from": "...", "to": "...", "count": 812, "truncated": false, "earthquakes": [ ... ] }
 `}</Code>
 
-      <h2 id="licenses" className="mb-2 mt-10 text-2xl font-semibold text-white">{t.licensesHeading}</h2>
+      <H2 id="licenses">{t.licensesHeading}</H2>
       <p className="mb-3">{t.licensesIntro}</p>
-      <div className="mb-3 overflow-x-auto">
+      <div className="card mb-3 overflow-x-auto">
         <table className="w-full min-w-[640px] text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
+          <thead className="border-b border-white/[0.06] bg-white/[0.02] text-left text-[11px] uppercase tracking-[0.12em] text-slate-500 [&_th]:px-4">
             <tr>
               <th className="py-2 pr-4 font-medium">{t.colId}</th>
               <th className="py-2 pr-4 font-medium">{t.colAgency}</th>
@@ -103,7 +116,7 @@ GET /api/history?from=2026-10-01&to=2026-10-08&minmag=4
               <th className="py-2 font-medium">{t.colApi}</th>
             </tr>
           </thead>
-          <tbody className="align-top [&_td]:border-t [&_td]:border-slate-800 [&_td]:py-2 [&_td]:pr-4">
+          <tbody className="align-top [&_td]:border-t [&_td]:border-white/[0.04] [&_td]:px-4 [&_td]:py-2.5">
             {Object.values(SOURCES).map((s) => (
               <tr key={s.id}>
                 <td><code>{s.id}</code></td>
@@ -121,9 +134,9 @@ GET /api/history?from=2026-10-01&to=2026-10-08&minmag=4
                 <td className="text-xs text-slate-400">{s.attribution}</td>
                 <td>
                   {s.publicApi ? (
-                    <span className="rounded bg-emerald-900/60 px-1.5 py-0.5 text-xs text-emerald-300">{t.apiYes}</span>
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400">{t.apiYes}</span>
                   ) : (
-                    <span className="whitespace-nowrap rounded bg-amber-900/50 px-1.5 py-0.5 text-xs text-amber-300">{t.apiNo}</span>
+                    <span className="whitespace-nowrap rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-400">{t.apiNo}</span>
                   )}
                 </td>
               </tr>
@@ -133,8 +146,8 @@ GET /api/history?from=2026-10-01&to=2026-10-08&minmag=4
       </div>
       <p className="mb-8 text-sm text-slate-400">{t.restrictedSourceNote}</p>
 
-      <h2 id="terms" className="mb-2 mt-10 text-2xl font-semibold text-white">{t.termsHeading}</h2>
-      <ol className="mb-4 list-decimal space-y-1.5 pl-6">
+      <H2 id="terms">{t.termsHeading}</H2>
+      <ol className="card mb-4 list-decimal space-y-2 p-5 pl-10 text-sm marker:font-bold marker:text-quake-400">
         {t.terms.map((term) => (
           <li key={term}>{term}</li>
         ))}
@@ -144,6 +157,7 @@ GET /api/history?from=2026-10-01&to=2026-10-08&minmag=4
       <p className="mt-4 text-sm text-slate-500">
         {t.wsNote} <code>wss://www.seismicportal.eu/standing_order/websocket</code>
       </p>
+    </div>
     </div>
   );
 }

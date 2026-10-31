@@ -6,11 +6,11 @@ import type { Earthquake } from '@/types';
 import { useI18n } from '@/i18n/I18nProvider';
 import { SOURCES } from '@/lib/sourceInfo';
 import QuakeTable from './QuakeTable';
-import { inputClass } from './ui';
+import { PageHeader, inputClass } from './ui';
 
 const LiveMap = dynamic(() => import('./LiveMap'), {
   ssr: false,
-  loading: () => <div className="h-full w-full animate-pulse bg-slate-900" />,
+  loading: () => <div className="h-full w-full animate-pulse bg-ink-900" />,
 });
 
 const NO_ARRIVALS = new Map<string, number>();
@@ -76,20 +76,21 @@ export default function HistoryView() {
   const rows = data?.earthquakes ?? [];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 text-slate-200">
-      <h1 className="mb-4 text-2xl font-bold text-white">{t.history.heading}</h1>
+    <div className="page-bg">
+    <div className="mx-auto max-w-6xl px-4 py-8 text-slate-200 md:py-12">
+      <PageHeader eyebrow={t.history.eyebrow} title={t.history.heading} subtitle={t.history.subtitle} />
       <form
-        className="mb-4 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end"
+        className="card mb-5 grid grid-cols-2 gap-3 p-4 sm:flex sm:flex-wrap sm:items-end"
         onSubmit={(e) => {
           e.preventDefault();
           void load();
         }}
       >
-        <label className="text-xs text-slate-400">
+        <label className="eyebrow">
           {t.history.from}
           <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className={`${inputClass} mt-1 block w-full`} />
         </label>
-        <label className="text-xs text-slate-400">
+        <label className="eyebrow">
           {t.history.to}
           <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} className={`${inputClass} mt-1 block w-full`} />
         </label>
@@ -111,13 +112,13 @@ export default function HistoryView() {
         <button
           type="submit"
           disabled={loading}
-          className="col-span-2 rounded-md bg-sky-600 px-5 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-60 sm:col-span-1"
+          className="col-span-2 rounded-xl bg-gradient-to-b from-quake-400 to-quake-500 px-6 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(255,90,54,0.8)] hover:brightness-110 disabled:opacity-60 sm:col-span-1 sm:ml-auto"
         >
           {loading ? t.history.fetching : t.history.fetch}
         </button>
       </form>
 
-      {error && <p className="mb-4 rounded-md border border-red-900 bg-red-950/60 p-3 text-sm text-red-200">{error}</p>}
+      {error && <p className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
       {data && !error && (
         <p className="mb-3 text-sm text-slate-400">
           <strong className="text-white">{t.common.earthquakes(fmt.number(data.count))}</strong>
@@ -125,7 +126,7 @@ export default function HistoryView() {
         </p>
       )}
 
-      <div className="mb-4 h-[45vh] min-h-[280px] overflow-hidden rounded-lg border border-slate-800">
+      <div className="card mb-5 h-[45vh] min-h-[280px] overflow-hidden">
         <LiveMap earthquakes={rows} arrivals={NO_ARRIVALS} selectedId={selectedId} onSelect={setSelectedId} />
       </div>
 
@@ -136,6 +137,7 @@ export default function HistoryView() {
         onSelect={setSelectedId}
         emptyText={loading || !data ? t.common.loading : t.history.empty}
       />
+    </div>
     </div>
   );
 }

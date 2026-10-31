@@ -164,3 +164,11 @@ test('GA: origin_time (UTC) kullanılır, yerel saatli epicentral_time değil', 
   assert.equal(out.length, 1);
   assert.equal(out[0].time, '2026-10-31T11:31:15.963Z');
 });
+
+test('isValidEarthquake: ileri tarihli kayıtlar reddedilir', async () => {
+  const { isValidEarthquake } = await import('../src/lib/merge');
+  const base = { id: 'x', latitude: 0, longitude: 0, depth: 10, magnitude: 3, location: '', source: 'usgs' as const };
+  const now = Date.parse('2026-10-31T19:50:00Z');
+  assert.equal(isValidEarthquake({ ...base, time: '2026-10-31T19:49:00Z' }, now), true);
+  assert.equal(isValidEarthquake({ ...base, time: '2026-10-31T22:31:15Z' }, now), false);
+});

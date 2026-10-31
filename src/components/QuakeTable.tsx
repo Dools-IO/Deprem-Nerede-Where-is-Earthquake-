@@ -5,7 +5,7 @@ import type { Earthquake } from '@/types';
 import { useI18n } from '@/i18n/I18nProvider';
 import { reporterNames } from '@/lib/sourceInfo';
 import { formatDepth } from '@/lib/format';
-import { MagBadge } from './ui';
+import { IconExternal, MagBadge } from './ui';
 
 const PAGE = 50;
 
@@ -33,51 +33,51 @@ export default function QuakeTable({ rows, now, selectedId, onSelect, showLinks,
     `https://www.openstreetmap.org/?mlat=${eq.latitude}&mlon=${eq.longitude}#map=8/${eq.latitude}/${eq.longitude}`;
   const links = (eq: Earthquake) => (
     <>
-      <a href={mapUrl(eq)} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">
+      <a href={mapUrl(eq)} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-white/[0.08] px-2 py-1 text-slate-300 hover:border-white/20 hover:text-white">
         {t.common.map}
       </a>
       {eq.url && (
         <>
-          {' · '}
-          <a href={eq.url} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">
+          <a href={eq.url} target="_blank" rel="noopener noreferrer" className="ml-1.5 inline-flex items-center gap-1 rounded-lg border border-white/[0.08] px-2 py-1 text-slate-300 hover:border-white/20 hover:text-white">
             {t.common.details}
+            <IconExternal className="h-3 w-3" />
           </a>
         </>
       )}
     </>
   );
   const rowClass = (eq: Earthquake) =>
-    `${onSelect ? 'cursor-pointer' : ''} ${selectedId === eq.id ? 'bg-slate-800' : 'hover:bg-slate-900/60'}`;
+    `${onSelect ? 'cursor-pointer' : ''} ${selectedId === eq.id ? 'bg-quake-500/10' : 'hover:bg-white/[0.03]'}`;
 
   return (
     <>
-      <div className="overflow-hidden rounded-lg border border-slate-800">
+      <div className="card overflow-hidden">
         {/* Geniş ekran: tablo */}
         <table className="hidden w-full text-sm md:table">
-          <thead className="bg-slate-900 text-left text-xs uppercase tracking-wide text-slate-400">
+          <thead className="border-b border-white/[0.06] bg-white/[0.02] text-left text-[11px] uppercase tracking-[0.12em] text-slate-500">
             <tr>
-              <th className="px-3 py-2 font-medium">{t.common.magnitude}</th>
-              <th className="px-3 py-2 font-medium">{t.common.location}</th>
-              <th className="px-3 py-2 font-medium">{t.common.time}</th>
-              <th className="px-3 py-2 font-medium">{t.common.depth}</th>
-              <th className="px-3 py-2 font-medium">{t.common.source}</th>
-              {showLinks && <th className="px-3 py-2" />}
+              <th className="px-4 py-3 font-semibold">{t.common.magnitude}</th>
+              <th className="px-4 py-3 font-semibold">{t.common.location}</th>
+              <th className="px-4 py-3 font-semibold">{t.common.time}</th>
+              <th className="px-4 py-3 font-semibold">{t.common.depth}</th>
+              <th className="px-4 py-3 font-semibold">{t.common.source}</th>
+              {showLinks && <th className="px-4 py-3" />}
             </tr>
           </thead>
           <tbody>
             {visible.map((eq) => (
-              <tr key={eq.id} onClick={onSelect && (() => onSelect(eq.id))} className={`border-t border-slate-800 ${rowClass(eq)}`}>
-                <td className="px-3 py-2">
-                  <MagBadge magnitude={eq.magnitude} magType={eq.magType} />
+              <tr key={eq.id} onClick={onSelect && (() => onSelect(eq.id))} className={`border-t border-white/[0.04] transition-colors ${rowClass(eq)}`}>
+                <td className="px-4 py-2.5">
+                  <MagBadge magnitude={eq.magnitude} magType={eq.magType} size="sm" />
                 </td>
-                <td className="px-3 py-2">{eq.location || t.common.unknownLocation}</td>
-                <td className="whitespace-nowrap px-3 py-2">
+                <td className="px-4 py-2.5 font-medium text-slate-100">{eq.location || t.common.unknownLocation}</td>
+                <td className="whitespace-nowrap px-4 py-2.5 text-slate-300">
                   <time dateTime={eq.time}>{fmt.dateTime(eq.time)}</time>
                   {now && <span className="block text-xs text-slate-500">{fmt.relative(eq.time, now)}</span>}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 tabular-nums">{formatDepth(eq.depth)}</td>
-                <td className="px-3 py-2 text-xs text-slate-300">{reporterNames(eq)}</td>
-                {showLinks && <td className="whitespace-nowrap px-3 py-2 text-xs">{links(eq)}</td>}
+                <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-slate-300">{formatDepth(eq.depth)}</td>
+                <td className="px-4 py-2.5"><span className="rounded-md bg-white/5 px-1.5 py-0.5 text-[11px] font-semibold text-slate-300">{reporterNames(eq)}</span></td>
+                {showLinks && <td className="whitespace-nowrap px-4 py-2.5 text-right text-xs">{links(eq)}</td>}
               </tr>
             ))}
           </tbody>
@@ -89,7 +89,7 @@ export default function QuakeTable({ rows, now, selectedId, onSelect, showLinks,
             <li
               key={eq.id}
               onClick={onSelect && (() => onSelect(eq.id))}
-              className={`flex items-start gap-3 border-t border-slate-800 px-3 py-2.5 first:border-t-0 ${rowClass(eq)}`}
+              className={`flex items-start gap-3 border-t border-white/[0.05] px-4 py-3 first:border-t-0 ${rowClass(eq)}`}
             >
               <MagBadge magnitude={eq.magnitude} magType={eq.magType} size="lg" />
               <div className="min-w-0 flex-1">
@@ -103,7 +103,7 @@ export default function QuakeTable({ rows, now, selectedId, onSelect, showLinks,
                   {' · '}
                   {reporterNames(eq)}
                 </div>
-                {showLinks && <div className="mt-0.5 text-xs">{links(eq)}</div>}
+                {showLinks && <div className="mt-2 text-xs">{links(eq)}</div>}
               </div>
             </li>
           ))}
@@ -115,7 +115,7 @@ export default function QuakeTable({ rows, now, selectedId, onSelect, showLinks,
         <button
           type="button"
           onClick={() => setShown((n) => n + PAGE)}
-          className="mx-auto mt-4 block rounded-md bg-slate-800 px-4 py-2 text-sm text-slate-200 hover:bg-slate-700"
+          className="mx-auto mt-5 block rounded-xl border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-slate-200 hover:bg-white/[0.07]"
         >
           {t.common.showMore(fmt.number(rows.length), shown)}
         </button>

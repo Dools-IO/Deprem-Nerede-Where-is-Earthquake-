@@ -1,13 +1,14 @@
 import '../globals.css';
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Space_Grotesk } from 'next/font/google';
 import Script from 'next/script';
 import { getDictionary, LOCALES } from '@/i18n';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import { pageMetadata, resolveLocale } from '@/i18n/metadata';
 import SiteHeader from '@/components/SiteHeader';
 
-const inter = Inter({ subsets: ['latin', 'latin-ext'] });
+const inter = Inter({ subsets: ['latin', 'latin-ext'], variable: '--font-sans' });
+const display = Space_Grotesk({ subsets: ['latin', 'latin-ext'], variable: '--font-display' });
 
 type Params = { params: Promise<{ lang: string }> };
 
@@ -21,12 +22,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return {
     ...pageMetadata(locale, '/'),
     title: { default: t.meta.homeTitle, template: `%s · ${t.meta.siteName}` },
-    icons: { icon: '/img/earthquake.png' },
+    icons: { icon: '/icon.svg' },
   };
 }
 
 export const viewport: Viewport = {
-  themeColor: '#020617',
+  themeColor: '#060b18',
 };
 
 export default async function RootLayout({ children, params }: Params & { children: React.ReactNode }) {
@@ -45,7 +46,7 @@ export default async function RootLayout({ children, params }: Params & { childr
           strategy="afterInteractive"
         />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${display.variable} font-sans antialiased`}>
         <I18nProvider locale={locale}>
           <SiteHeader />
           <main>{children}</main>

@@ -8,7 +8,8 @@ import { useNow } from '@/hooks/useNow';
 import { useI18n } from '@/i18n/I18nProvider';
 import { SOURCES, isSourceId } from '@/lib/sourceInfo';
 import QuakeTable from './QuakeTable';
-import { Chip, inputClass } from './ui';
+import { IconSearch, PageHeader, Segmented, Stat, inputClass } from './ui';
+import { formatMagnitude, magnitudeColor } from '@/lib/format';
 
 const MAG_FILTERS = [0, 2, 3, 4, 5, 6];
 type Sort = 'time' | 'magnitude';
@@ -45,20 +46,41 @@ export default function EarthquakeTable({ initial }: { initial: EarthquakeFeed |
     router.replace(`${href('/liste')}${next.size ? `?${next}` : ''}`, { scroll: false });
   };
 
-  return (
-    <div className="mx-auto max-w-6xl px-4 py-6 text-slate-200">
-      <h1 className="mb-4 text-2xl font-bold text-white">
-        {t.list.heading(feed.windowHours, fmt.number(rows.length))}
-      </h1>
+  const strongest = rows.reduce<(typeof rows)[number] | null>((m, eq) => (!m || eq.magnitude > m.magnitude ? eq : m), null);
+  const latest = feed.earthquakes[0] ?? null;
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={t.list.searchPlaceholder}
-          className={`${inputClass} lg:w-64`}
+  return (
+    <div className="page-bg">
+    <div className="mx-auto max-w-6xl px-4 py-8 text-slate-200 md:py-12">
+      <PageHeader eyebrow={t.list.eyebrow} title={t.list.title} subtitle={t.list.subtitle(feed.windowHours)} />
+
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label={t.list.statShown} value={fmt.number(rows.length)} hint={t.live.statTotal(feed.windowHours)} />
+        <Stat
+          label={t.list.statStrongest}
+          value={strongest ? `M${formatMagnitude(strongest.magnitude)}` : '–'}
+          accent={strongest ? magnitudeColor(strongest.magnitude) : undefined}
+          hint={strongest?.location}
         />
+        <Stat
+          label={t.list.statLatest}
+          value={latest && now ? fmt.relative(latest.time, now) : '–'}
+          hint={latest?.location}
+        />
+        <Stat label={t.live.sourcesLabel} value={`${feed.sources.filter((s) => s.ok).length}/${feed.sources.length || Object.keys(SOURCES).length}`} hint={t.live.sourcesActive} />
+      </div>
+
+      <div className="card mb-5 flex flex-col gap-3 p-3 lg:flex-row lg:flex-wrap lg:items-center">
+        <label className="relative block lg:w-72">
+          <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t.list.searchPlaceholder}
+            className={`${inputClass} w-full pl-9`}
+          />
+        </label>
         <select value={source ?? ''} onChange={(e) => setSource(e.target.value)} className={inputClass} aria-label={t.common.source}>
           <option value="">{t.common.allSources}</option>
           {Object.values(SOURCES).map((s) => (
@@ -67,24 +89,29 @@ export default function EarthquakeTable({ initial }: { initial: EarthquakeFeed |
             </option>
           ))}
         </select>
-        <div className="flex flex-wrap items-center gap-1" role="group" aria-label={t.common.magnitude}>
-          {MAG_FILTERS.map((m) => (
-            <Chip key={m} active={minMag === m} onClick={() => setMinMag(m)}>
-              {m === 0 ? t.common.all : `M${m}+`}
-            </Chip>
-          ))}
+        <div className="overflow-x-auto">
+          <Segmented
+            label={t.common.magnitude}
+            value={minMag}
+            onChange={setMinMag}
+            options={MAG_FILTERS.map((m) => ({ value: m, label: m === 0 ? t.common.all : `M${m}+` }))}
+          />
         </div>
-        <div className="flex items-center gap-1 lg:ml-auto" role="group" aria-label={t.common.sortBy}>
-          <Chip active={sort === 'time'} onClick={() => setSort('time')}>
-            {t.common.sortNewest}
-          </Chip>
-          <Chip active={sort === 'magnitude'} onClick={() => setSort('magnitude')}>
-            {t.common.sortStrongest}
-          </Chip>
+        <div className="lg:ml-auto">
+          <Segmented
+            label={t.common.sortBy}
+            value={sort}
+            onChange={setSort}
+            options={[
+              { value: 'time', label: t.common.sortNewest },
+              { value: 'magnitude', label: t.common.sortStrongest },
+            ]}
+          />
         </div>
       </div>
 
       <QuakeTable rows={rows} now={now} showLinks emptyText={feed.updatedAt ? t.list.empty : t.common.loading} />
+    </div>
     </div>
   );
 }
