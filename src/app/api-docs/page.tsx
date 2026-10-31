@@ -1,104 +1,95 @@
-import React from 'react';
+import type { Metadata } from 'next';
+import { SOURCES } from '@/lib/sourceInfo';
+
+export const metadata: Metadata = { title: 'API · Deprem Nerede?' };
+
+const Code = ({ children }: { children: string }) => (
+  <pre className="mb-6 overflow-x-auto rounded-lg bg-slate-900 p-4 text-sm text-slate-200">{children.trim()}</pre>
+);
 
 export default function ApiDocsPage() {
   return (
-    <div className="max-w-3xl mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold mb-4">Deprem API Dokümantasyonu</h1>
-      <p className="mb-6 text-gray-700">
-        Bu sistem, farklı deprem veri kaynaklarından alınan verileri standart bir JSON formatında REST API olarak sunar. Her bir kaynak için ayrı endpoint bulunur ve tüm veriler aynı veri yapısında döner. API'ler herkese açıktır ve kolayca entegre edilebilir.
+    <div className="mx-auto max-w-3xl px-4 py-10 text-slate-300">
+      <h1 className="mb-4 text-3xl font-bold text-white">Deprem API</h1>
+      <p className="mb-6">
+        Tüm kaynaklar resmi API veya kurumların kendi yayınladığı beslemelerden sunucu tarafında çekilir, tek formata
+        çevrilir ve aynı depremi raporlayan kayıtlar birleştirilir. API herkese açıktır.
       </p>
-      <h2 className="text-2xl font-semibold mt-8 mb-2">Sistem Hakkında</h2>
-      <ul className="list-disc ml-6 mb-6 text-gray-700">
-        <li>Veriler EMSC, KOERI, USGS, IRIS, ESM, JMA, FDSNWS, GA, GeoNet, SSN, INGV gibi güvenilir kaynaklardan alınır.</li>
-        <li>Her kaynak için ayrı endpoint vardır ve tüm yanıtlar aynı JSON formatındadır.</li>
-        <li>Veriler 5 dakikada bir güncellenir ve önbelleğe alınır.</li>
-        <li>Her IP için dakikada 60 istek sınırı vardır (rate limiting).</li>
-        <li>Tüm zamanlar UTC ve ISO 8601 formatındadır.</li>
-      </ul>
-      <h2 className="text-2xl font-semibold mt-8 mb-2">Ortak Yanıt Formatı</h2>
-      <pre className="bg-gray-100 p-4 rounded text-sm overflow-x-auto mb-6">
-{`
-{
-  "success": true,
-  "source": "KAYNAK_ADI",
-  "data": [
-    {
-      "id": "string",
-      "time": "ISO8601_DATETIME",
-      "latitude": number,
-      "longitude": number,
-      "depth": number,
-      "magnitude": number,
-      "location": "string",
-      "source": "string",
-      "url": "string"
-    }
-  ],
-  "lastUpdated": "ISO8601_DATETIME"
-}
-`}
-      </pre>
-      <h2 className="text-2xl font-semibold mt-8 mb-2">Mevcut Endpoint'ler</h2>
-      <ul className="list-disc ml-6 mb-6 text-gray-700">
-        <li><b>/api/v1/emsc</b> - EMSC (Avrupa-Akdeniz)</li>
-        <li><b>/api/v1/koeri</b> - KOERI (Kandilli)</li>
-        <li><b>/api/v1/usgs</b> - USGS (ABD)</li>
-        <li><b>/api/v1/iris</b> - IRIS (Akademik)</li>
-        <li><b>/api/v1/esm</b> - ESM (Avrupa Kuvvetli Yer Hareketi)</li>
-        <li><b>/api/v1/jma</b> - JMA (Japonya)</li>
-        <li><b>/api/v1/fdsnws</b> - FDSNWS (Standart Web Servis)</li>
-        <li><b>/api/v1/ga</b> - GA (Avustralya)</li>
-        <li><b>/api/v1/geonet</b> - GeoNet (Yeni Zelanda)</li>
-        <li><b>/api/v1/ssn</b> - SSN (Meksika)</li>
-        <li><b>/api/v1/ingv</b> - INGV (İtalya)</li>
-        <li><b>/api/v1/all</b> - Tüm kaynakların birleşimi</li>
-      </ul>
-      <h2 className="text-2xl font-semibold mt-8 mb-2">Kullanım Örnekleri</h2>
-      <pre className="bg-gray-100 p-4 rounded text-sm overflow-x-auto mb-6">
-{`// KOERI verilerini çekme
-fetch('/api/v1/koeri')
-  .then(res => res.json())
-  .then(data => {
-    if (data.success) {
-      console.log('Depremler:', data.data);
-      console.log('Son güncelleme:', data.lastUpdated);
-    }
-  });
 
-// Tüm kaynaklardan veri çekme
-fetch('/api/v1/all')
-  .then(res => res.json())
-  .then(data => {
-    if (data.success) {
-      console.log('Tüm depremler:', data.data);
-    }
-  });
-`}
-      </pre>
-      <h2 className="text-2xl font-semibold mt-8 mb-2">Rate Limiting ve Diğer Notlar</h2>
-      <ul className="list-disc ml-6 mb-6 text-gray-700">
-        <li>Her IP adresi için dakikada 60 istek sınırı vardır. Aşıldığında 429 hatası döner.</li>
-        <li>Veriler 5 dakikada bir güncellenir, hızlı yanıt için önbellek kullanılır.</li>
-        <li>Her kaynak için son 500 deprem verisi sunulur.</li>
-        <li>Yanıtlar her zaman JSON formatındadır.</li>
+      <ul className="mb-8 list-disc space-y-1 pl-6">
+        <li>Zaman penceresi: son 24 saat. Tüm zamanlar UTC, ISO 8601.</li>
+        <li>Önbellek: kaynak başına 30–120 sn. Yanıtlar CDN'de 30 sn önbelleklenir.</li>
+        <li>Hız sınırı: IP başına dakikada 60 istek (429 döner).</li>
       </ul>
-      <h2 className="text-2xl font-semibold mt-8 mb-2">Hata Durumları</h2>
-      <pre className="bg-gray-100 p-4 rounded text-sm overflow-x-auto mb-6">
-{`
+
+      <h2 className="mb-2 mt-8 text-2xl font-semibold text-white">GET /api/earthquakes</h2>
+      <p className="mb-3">Birleştirilmiş akış ve kaynak durumları. Haritanın kullandığı uç nokta budur.</p>
+      <Code>{`
+GET /api/earthquakes?minmag=4&source=afad,kandilli&since=2026-10-30T12:00:00Z&limit=100
+
 {
-  "success": false,
-  "error": "Hata mesajı",
-  "source": "KAYNAK_ADI",
-  "lastUpdated": "ISO8601_DATETIME"
+  "updatedAt": "2026-10-30T21:10:00.000Z",
+  "windowHours": 24,
+  "count": 12,
+  "sources": [{ "id": "afad", "name": "AFAD", "ok": true, "count": 143, "updatedAt": "..." }],
+  "earthquakes": [
+    {
+      "id": "afad:597830",
+      "time": "2026-10-30T20:14:49.000Z",
+      "latitude": 41.1115,
+      "longitude": 35.1765,
+      "depth": 7.5,
+      "magnitude": 4.1,
+      "magType": "ML",
+      "location": "Vezirköprü (Samsun)",
+      "source": "afad",
+      "url": "https://deprem.afad.gov.tr/event-detail/597830",
+      "alsoReportedBy": ["kandilli", "emsc"]
+    }
+  ]
 }
-`}
-      </pre>
-      <h2 className="text-2xl font-semibold mt-8 mb-2">Sıkça Sorulanlar</h2>
-      <ul className="list-disc ml-6 mb-6 text-gray-700">
-        <li><b>Veriler ne kadar güncel?</b> - Maksimum 5 dakika öncesine kadar günceldir.</li>
-        <li><b>API'yi ticari olarak kullanabilir miyim?</b> - Açık kaynak ve serbestçe kullanılabilir, ancak kaynak belirtmeniz önerilir.</li>
-        <li><b>Veri formatı değişir mi?</b> - Tüm endpoint'ler aynı veri formatını döner.</li>
-      </ul>
+`}</Code>
+      <table className="mb-8 w-full text-sm">
+        <tbody className="[&_td]:border-t [&_td]:border-slate-800 [&_td]:py-1.5 [&_td]:pr-4">
+          <tr><td><code>minmag</code></td><td>En küçük büyüklük</td></tr>
+          <tr><td><code>source</code></td><td>Virgülle ayrılmış kaynak kimlikleri (aşağıda)</td></tr>
+          <tr><td><code>since</code></td><td>Bu zamandan sonraki depremler (ISO 8601)</td></tr>
+          <tr><td><code>limit</code></td><td>1–10000</td></tr>
+        </tbody>
+      </table>
+
+      <h2 className="mb-2 mt-8 text-2xl font-semibold text-white">GET /api/v1/&#123;kaynak&#125;</h2>
+      <p className="mb-3">
+        Tek bir kaynağın ham (birleştirilmemiş) verisi. <code>/api/v1/all</code> birleşik listeyi döndürür. Aynı filtre
+        parametreleri geçerlidir.
+      </p>
+      <Code>{`
+{ "success": true, "source": "usgs", "count": 312, "lastUpdated": "...", "data": [ ... ] }
+`}</Code>
+
+      <h2 className="mb-2 mt-8 text-2xl font-semibold text-white">Kaynaklar</h2>
+      <table className="w-full text-sm">
+        <thead className="text-left text-slate-400">
+          <tr><th className="py-1.5">Kimlik</th><th>Kurum</th><th>Bölge</th></tr>
+        </thead>
+        <tbody className="[&_td]:border-t [&_td]:border-slate-800 [&_td]:py-1.5 [&_td]:pr-4">
+          {Object.values(SOURCES).map((s) => (
+            <tr key={s.id}>
+              <td><code>{s.id}</code></td>
+              <td>
+                <a href={s.homepage} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">
+                  {s.fullName}
+                </a>
+              </td>
+              <td>{s.region}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-4 text-sm text-slate-500">
+        Haritadaki anlık akış ayrıca tarayıcıdan doğrudan EMSC&apos;nin WebSocket servisine
+        (<code>wss://www.seismicportal.eu/standing_order/websocket</code>) bağlanır.
+      </p>
     </div>
   );
-} 
+}

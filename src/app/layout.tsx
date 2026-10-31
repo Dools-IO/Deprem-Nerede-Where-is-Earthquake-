@@ -1,108 +1,45 @@
 import './globals.css';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import Link from 'next/link';
 
-const inter = Inter({ subsets: ['latin'] });
-
-const sources = [
-  { id: 'usgs', name: 'USGS' },
-  { id: 'ssn', name: 'SSN' },
-  { id: 'koeri', name: 'KOERI' },
-  { id: 'jma', name: 'JMA' },
-  { id: 'iris', name: 'IRIS' },
-  { id: 'ingv', name: 'INGV' },
-  { id: 'geonet', name: 'GeoNet' },
-  { id: 'ga', name: 'GA' },
-  { id: 'esm', name: 'ESM' },
-  { id: 'emsc', name: 'EMSC' },
-];
+const inter = Inter({ subsets: ['latin', 'latin-ext'] });
 
 export const metadata: Metadata = {
-  title: 'Deprem Nerede? - Anlık Deprem Bilgileri',
-  description: 'Dünya genelindeki son depremleri anlık olarak takip edin. Veriler güvenilir kaynaklardan düzenli olarak güncellenmektedir.',
+  title: 'Deprem Nerede? Dünya geneli canlı deprem haritası',
+  description:
+    'AFAD, Kandilli, EMSC, USGS ve 16 resmi kurumdan dünyadaki tüm depremleri tek haritada, canlı olarak takip edin.',
+  icons: { icon: '/img/earthquake.png' },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export const viewport: Viewport = {
+  themeColor: '#020617',
+};
+
+const NAV = [
+  { href: '/', label: 'Harita' },
+  { href: '/liste', label: 'Liste' },
+  { href: '/api-docs', label: 'API' },
+];
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr">
       <body className={inter.className}>
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-          {/* Navigation */}
-          <nav className="bg-white shadow-sm">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between h-16">
-                <div className="flex">
-                  <Link href="/" className="flex items-center px-2 text-gray-900 font-semibold">
-                    Deprem Nerede?
-                  </Link>
-                </div>
-                <div className="flex items-center">
-                  <div className="hidden sm:ml-6 sm:flex sm:space-x-4">
-                    <Link
-                      href="/world-map"
-                      className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
-                    >
-                      Dünya Haritası
-                    </Link>
-                    {sources.map((source) => (
-                      <Link
-                        key={source.id}
-                        href={`/source/${source.id}`}
-                        className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
-                      >
-                        {source.name}
-                      </Link>
-                    ))}
-                    <Link
-                      href="/api-docs"
-                      className="px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-900"
-                    >
-                      API Dokümantasyon
-                    </Link>
-                  </div>
-                  {/* Mobil menü butonu */}
-                  <div className="sm:hidden">
-                    <button
-                      type="button"
-                      className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
-                    >
-                      <span className="sr-only">Menüyü aç</span>
-                      <svg
-                        className="h-6 w-6"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 6h16M4 12h16M4 18h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <header className="flex h-14 items-center justify-between border-b border-slate-800 bg-slate-950 px-4">
+          <Link href="/" className="flex items-center gap-2 font-semibold text-white">
+            <span aria-hidden>🌍</span> Deprem Nerede?
+          </Link>
+          <nav className="flex items-center gap-1 text-sm">
+            {NAV.map((n) => (
+              <Link key={n.href} href={n.href} className="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800 hover:text-white">
+                {n.label}
+              </Link>
+            ))}
           </nav>
-
-          {children}
-          
-          <footer className="bg-white border-t border-gray-200 py-4 mt-auto">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
-              <p>Made with ❤️ for earthquake awareness and monitoring</p>
-              <p>Bu uygulama bir Dools.IO uygulamasıdır.</p>
-              <p>© {new Date().getFullYear()} Deprem Nerede - Tüm Hakları Saklıdır.</p>
-            </div>
-          </footer>
-        </div>
+        </header>
+        <main>{children}</main>
       </body>
     </html>
   );
-} 
+}
