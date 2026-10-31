@@ -7,6 +7,8 @@ import { useEarthquakeFeed } from '@/hooks/useEarthquakeFeed';
 import { useNow } from '@/hooks/useNow';
 import { SOURCES } from '@/lib/sourceInfo';
 import { formatDateTime, formatDepth, formatMagnitude, formatRelative, MAG_SCALE, magnitudeColor } from '@/lib/format';
+import { formatCount, regionOf } from '@/lib/i18n';
+import { useI18n } from './I18nProvider';
 
 const LiveMap = dynamic(() => import('./LiveMap'), {
   ssr: false,
@@ -14,11 +16,7 @@ const LiveMap = dynamic(() => import('./LiveMap'), {
 });
 
 const MAG_FILTERS = [0, 2.5, 4, 5, 6];
-const TIME_FILTERS = [
-  { hours: 1, label: '1 sa' },
-  { hours: 6, label: '6 sa' },
-  { hours: 24, label: '24 sa' },
-];
+const TIME_FILTERS = [1, 6, 24];
 const LIST_LIMIT = 200;
 // Liste önce kısa çizilir; mobilde açılışı hızlandırır, istenirse genişletilir
 const LIST_STEP = 50;
@@ -26,6 +24,7 @@ const LIST_STEP = 50;
 export default function LiveDashboard({ initial }: { initial: EarthquakeFeed | null }) {
   const feed = useEarthquakeFeed(initial);
   const now = useNow();
+  const { lang, t } = useI18n();
   const [minMag, setMinMag] = useState(0);
   const [hours, setHours] = useState(24);
   const [hidden, setHidden] = useState<Set<SourceId>>(new Set());
@@ -81,15 +80,15 @@ export default function LiveDashboard({ initial }: { initial: EarthquakeFeed | n
         <div className="pointer-events-auto flex items-center gap-3 rounded-lg bg-slate-900/85 px-3 py-2 text-sm shadow-lg backdrop-blur">
           <LiveBadge status={feed.live} />
           <span className="text-slate-300">
-            <strong className="text-white">{visible.length.toLocaleString('tr-TR')}</strong> deprem
+            <strong className="text-white">{formatCount(visible.length, lang)}</strong> {t.quakes}
           </span>
           {strongest && (
             <button
               className="hidden text-slate-300 hover:text-white sm:inline"
               onClick={() => setSelectedId(strongest.id)}
-              title="En büyük depreme git"
+              title={t.strongestTitle}
             >
-              En büyük: <strong style={{ color: magnitudeColor(strongest.magnitude) }}>M{formatMagnitude(strongest.magnitude)}</strong>
+              {t.strongest} <strong style={{ color: magnitudeColor(strongest.magnitude) }}>M{formatMagnitude(strongest.magnitude)}</strong>
             </button>
           )}
           <button
@@ -97,24 +96,24 @@ export default function LiveDashboard({ initial }: { initial: EarthquakeFeed | n
             onClick={() => setShowSources((v) => !v)}
             aria-expanded={showSources}
           >
-            {okSources}/{feed.sources.length || Object.keys(SOURCES).length} kaynak
+            {okSources}/{feed.sources.length || Object.keys(SOURCES).length} {t.sources}
           </button>
           {feed.updatedAt && now && (
-            <span className="hidden text-xs text-slate-400 md:inline">güncellendi {formatRelative(feed.updatedAt, now)}</span>
+            <span className="hidden text-xs text-slate-400 md:inline">{t.updated(formatRelative(feed.updatedAt, now, lang))}</span>
           )}
-          {feed.error && <span className="text-xs text-amber-400">bağlantı sorunu, yeniden deneniyor</span>}
+          {feed.error && <span className="text-xs text-amber-400">{t.connError}</span>}
         </div>
       </div>
 
       {showSources && (
         <div className="absolute left-3 top-16 z-[600] max-h-[70vh] w-80 overflow-y-auto rounded-lg bg-slate-900/95 p-3 text-sm shadow-xl backdrop-blur">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="font-semibold">Veri kaynakları</h2>
-            <button className="text-slate-400 hover:text-white" onClick={() => setShowSources(false)} aria-label="Kapat">
+            <h2 className="font-semibold">{t.dataSources}</h2>
+            <button className="text-slate-400 hover:text-white" onClick={() => setShowSources(false)} aria-label={t.close}>
               ✕
             </button>
           </div>
-          <p className="mb-2 text-xs text-slate-400">İşareti kaldırılan kaynağın yalnız raporladığı depremler gizlenir.</p>
+          <p className="mb-2 text-xs text-slate-400">{t.sourcesHint}</p>
           <ul className="space-y-1">
             {feed.sources.map((s) => (
               <li key={s.id} className="flex items-center gap-2">
@@ -127,20 +126,18 @@ export default function LiveDashboard({ initial }: { initial: EarthquakeFeed | n
                 />
                 <label htmlFor={`src-${s.id}`} className="flex-1 cursor-pointer">
                   <span className="font-medium">{s.name}</span>{' '}
-                  <span className="text-xs text-slate-400">{SOURCES[s.id]?.region}</span>
+                  <span className="text-xs text-slate-400">{SOURCES[s.id] && regionOf(SOURCES[s.id], lang)}</span>
                 </label>
                 <span
                   className={`text-xs ${s.pending ? 'text-slate-400' : s.ok ? 'text-emerald-400' : 'text-rose-400'}`}
-                  title={s.error ? `Hata: ${s.error}` : s.updatedAt ? formatDateTime(s.updatedAt) : ''}
+                  title={s.error ? `${t.errorPrefix}: ${s.error}` : s.updatedAt ? formatDateTime(s.updatedAt, lang) : ''}
                 >
-                  {s.pending ? 'yükleniyor' : s.ok ? s.count : 'hata'}
+                  {s.pending ? t.pending : s.ok ? s.count : t.failed}
                 </span>
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-xs text-slate-400">
-            Canlı akış: EMSC WebSocket. Diğer kaynaklar sunucuda 30–120 sn aralıkla yenilenir.
-          </p>
+          <p className="mt-3 text-xs text-slate-400">{t.liveNote}</p>
         </div>
       )}
 
@@ -153,23 +150,23 @@ export default function LiveDashboard({ initial }: { initial: EarthquakeFeed | n
         <button
           onClick={() => setPanelOpen((v) => !v)}
           className="absolute -left-9 top-3 rounded-l-md bg-slate-900/90 px-2 py-2 text-slate-300 hover:text-white"
-          aria-label={panelOpen ? 'Paneli gizle' : 'Paneli göster'}
+          aria-label={panelOpen ? t.hidePanel : t.showPanel}
         >
           {panelOpen ? '›' : '‹'}
         </button>
 
         <div className="space-y-3 border-b border-slate-800 p-3">
-          <FilterRow label="Büyüklük">
+          <FilterRow label={t.magnitude}>
             {MAG_FILTERS.map((m) => (
               <Chip key={m} active={minMag === m} onClick={() => setMinMag(m)}>
-                {m === 0 ? 'Tümü' : `${m}+`}
+                {m === 0 ? t.all : `${m}+`}
               </Chip>
             ))}
           </FilterRow>
-          <FilterRow label="Zaman">
-            {TIME_FILTERS.map((t) => (
-              <Chip key={t.hours} active={hours === t.hours} onClick={() => setHours(t.hours)}>
-                {t.label}
+          <FilterRow label={t.time}>
+            {TIME_FILTERS.map((h) => (
+              <Chip key={h} active={hours === h} onClick={() => setHours(h)}>
+                {t.hoursShort(h)}
               </Chip>
             ))}
           </FilterRow>
@@ -201,10 +198,11 @@ export default function LiveDashboard({ initial }: { initial: EarthquakeFeed | n
 }
 
 function LiveBadge({ status }: { status: 'connecting' | 'live' | 'offline' }) {
+  const { t } = useI18n();
   const map = {
-    live: { dot: 'bg-red-500', text: 'CANLI', title: 'EMSC canlı akışına bağlı' },
-    connecting: { dot: 'bg-amber-400', text: 'Bağlanıyor', title: 'Canlı akışa bağlanılıyor' },
-    offline: { dot: 'bg-slate-500', text: 'Canlı akış yok', title: 'Canlı akış koptu; 30 sn yenileme devam ediyor' },
+    live: { dot: 'bg-red-500', text: t.live, title: t.liveTitle },
+    connecting: { dot: 'bg-amber-400', text: t.connecting, title: t.connectingTitle },
+    offline: { dot: 'bg-slate-500', text: t.offline, title: t.offlineTitle },
   }[status];
   return (
     <span className="flex items-center gap-1.5 text-xs font-bold tracking-wide" title={map.title}>
@@ -261,6 +259,7 @@ const EarthquakeList = memo(function EarthquakeList({
   onSelect,
   loaded,
 }: ListProps) {
+  const { lang, t } = useI18n();
   const shown = Math.min(count, LIST_LIMIT);
   // pb-12: harita atıf şeridi (mobilde iki satır) listenin son satırını örtmesin
   return (
@@ -282,10 +281,10 @@ const EarthquakeList = memo(function EarthquakeList({
                 {formatMagnitude(eq.magnitude)}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{eq.location || 'Konum belirtilmemiş'}</span>
+                <span className="block truncate text-sm font-medium">{eq.location || t.noLocation}</span>
                 <span className="block text-xs text-slate-400">
-                  <time dateTime={eq.time} title={formatDateTime(eq.time)}>
-                    {now ? formatRelative(eq.time, now) : formatDateTime(eq.time)}
+                  <time dateTime={eq.time} title={formatDateTime(eq.time, lang)}>
+                    {now ? formatRelative(eq.time, now, lang) : formatDateTime(eq.time, lang)}
                   </time>
                   {' · '}
                   {formatDepth(eq.depth)}
@@ -293,14 +292,14 @@ const EarthquakeList = memo(function EarthquakeList({
                   {[eq.source, ...(eq.alsoReportedBy ?? [])].map((s) => SOURCES[s]?.name ?? s).join(', ')}
                 </span>
               </span>
-              {isNew && <span className="rounded bg-sky-500 px-1.5 py-0.5 text-[10px] font-bold text-white">YENİ</span>}
+              {isNew && <span className="rounded bg-sky-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{t.newBadge}</span>}
             </button>
           </li>
         );
       })}
       {items.length === 0 && (
         <li className="p-6 text-center text-sm text-slate-400">
-          {loaded ? 'Bu filtrelerle deprem yok.' : 'Veriler yükleniyor…'}
+          {loaded ? t.noMatches : t.loading}
         </li>
       )}
       {items.length > shown && shown < LIST_LIMIT && (
@@ -309,12 +308,12 @@ const EarthquakeList = memo(function EarthquakeList({
             onClick={onMore}
             className="w-full rounded-md bg-slate-800 py-2 text-xs text-slate-300 hover:bg-slate-700 hover:text-white"
           >
-            Daha fazla göster ({items.length.toLocaleString('tr-TR')} kayıttan {shown})
+            {t.showMoreOf(formatCount(items.length, lang), shown)}
           </button>
         </li>
       )}
       {items.length > LIST_LIMIT && shown >= LIST_LIMIT && (
-        <li className="p-3 text-center text-xs text-slate-500">İlk {LIST_LIMIT} kayıt listeleniyor; tamamı haritada.</li>
+        <li className="p-3 text-center text-xs text-slate-500">{t.firstN(LIST_LIMIT)}</li>
       )}
     </ol>
   );

@@ -6,6 +6,8 @@ import 'leaflet/dist/leaflet.css';
 import type { Earthquake } from '@/types';
 import { SOURCES } from '@/lib/sourceInfo';
 import { formatDateTime, formatDepth, formatMagnitude, magnitudeColor, magnitudeRadius } from '@/lib/format';
+import { DICTS, type Lang } from '@/lib/i18n';
+import { useI18n } from './I18nProvider';
 
 interface Props {
   earthquakes: Earthquake[];
@@ -27,7 +29,8 @@ function opacityFor(time: string, now: number): number {
 }
 
 /** Popup içeriği DOM API ile kuruluyor; dış kaynaktan gelen metin asla HTML olarak yorumlanmaz */
-function buildPopup(eq: Earthquake): HTMLElement {
+function buildPopup(eq: Earthquake, lang: Lang): HTMLElement {
+  const t = DICTS[lang];
   const root = document.createElement('div');
   root.className = 'eq-popup';
 
@@ -38,17 +41,17 @@ function buildPopup(eq: Earthquake): HTMLElement {
   mag.style.background = magnitudeColor(eq.magnitude);
   mag.textContent = formatMagnitude(eq.magnitude);
   const place = document.createElement('strong');
-  place.textContent = eq.location || 'Konum belirtilmemiş';
+  place.textContent = eq.location || t.noLocation;
   head.append(mag, place);
   root.append(head);
 
   const rows: [string, string][] = [
-    ['Zaman', formatDateTime(eq.time)],
-    ['Derinlik', formatDepth(eq.depth)],
-    ['Koordinat', `${eq.latitude.toFixed(3)}, ${eq.longitude.toFixed(3)}`],
-    ['Büyüklük tipi', eq.magType ?? '-'],
+    [t.time, formatDateTime(eq.time, lang)],
+    [t.depth, formatDepth(eq.depth)],
+    [t.coordinates, `${eq.latitude.toFixed(3)}, ${eq.longitude.toFixed(3)}`],
+    [t.magType, eq.magType ?? '-'],
     [
-      'Kaynak',
+      t.source,
       [eq.source, ...(eq.alsoReportedBy ?? [])].map((s) => SOURCES[s]?.name ?? s).join(', '),
     ],
   ];
@@ -67,7 +70,7 @@ function buildPopup(eq: Earthquake): HTMLElement {
     a.href = eq.url;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    a.textContent = `${SOURCES[eq.source]?.name ?? eq.source} sayfasında aç →`;
+    a.textContent = t.openOn(SOURCES[eq.source]?.name ?? eq.source);
     root.append(a);
   }
   return root;
@@ -102,6 +105,8 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
   const skipFly = useRef(false);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  // Dil sayfa ömrü boyunca değişmez (dil geçişi tam sayfa yüklemesidir)
+  const { lang, t } = useI18n();
 
   // Haritayı bir kez kur
   useEffect(() => {
@@ -217,7 +222,7 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
             opacity: style.fillOpacity!,
           };
           entry.marker
-            .bindPopup(() => buildPopup(entry.eq), { maxWidth: 320, className: 'eq-leaflet-popup' })
+            .bindPopup(() => buildPopup(entry.eq, lang), { maxWidth: 320, className: 'eq-leaflet-popup' })
             .on('click', (e) => {
               L.DomEvent.stopPropagation(e);
               skipFly.current = true;
@@ -270,7 +275,7 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
     return () => {
       cancelled = true;
     };
-  }, [earthquakes, arrivals]);
+  }, [earthquakes, arrivals, lang]);
 
   // Listeden seçilen depreme uç ve popup'ını aç
   useEffect(() => {
@@ -287,5 +292,5 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
     entry.marker.openPopup();
   }, [selectedId]);
 
-  return <div ref={containerRef} className="h-full w-full bg-slate-950" aria-label="Deprem haritası" />;
+  return <div ref={containerRef} className="h-full w-full bg-slate-950" aria-label={t.mapLabel} />;
 }

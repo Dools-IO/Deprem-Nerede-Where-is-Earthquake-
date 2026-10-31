@@ -7,12 +7,15 @@ import { useEarthquakeFeed } from '@/hooks/useEarthquakeFeed';
 import { useNow } from '@/hooks/useNow';
 import { SOURCES, isSourceId } from '@/lib/sourceInfo';
 import { formatDateTime, formatDepth, formatMagnitude, formatRelative, magnitudeColor } from '@/lib/format';
+import { formatCount, locale, regionOf } from '@/lib/i18n';
+import { useI18n } from './I18nProvider';
 
 const PAGE = 50;
 
 export default function EarthquakeTable({ initial }: { initial: EarthquakeFeed | null }) {
   const feed = useEarthquakeFeed(initial);
   const now = useNow();
+  const { lang, t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
   const kaynak = params.get('kaynak');
@@ -22,44 +25,46 @@ export default function EarthquakeTable({ initial }: { initial: EarthquakeFeed |
   const [shown, setShown] = useState(PAGE);
 
   const rows = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase('tr');
+    const loc = locale(lang);
+    const q = query.trim().toLocaleLowerCase(loc);
     return feed.earthquakes.filter(
       (eq) =>
         eq.magnitude >= minMag &&
         (!source || eq.source === source || eq.alsoReportedBy?.includes(source)) &&
-        (!q || eq.location.toLocaleLowerCase('tr').includes(q)),
+        (!q || eq.location.toLocaleLowerCase(loc).includes(q)),
     );
-  }, [feed.earthquakes, minMag, source, query]);
+  }, [feed.earthquakes, minMag, source, query, lang]);
 
   const setSource = (value: string) => {
     const next = new URLSearchParams(params);
     if (value) next.set('kaynak', value);
     else next.delete('kaynak');
-    router.replace(`/liste${next.size ? `?${next}` : ''}`, { scroll: false });
+    // usePathname statik sayfada iç yolu (/tr/liste) verebilir; görünen adres tarayıcıdan okunur
+    router.replace(`${window.location.pathname}${next.size ? `?${next}` : ''}`, { scroll: false });
   };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 text-slate-200">
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <h1 className="mr-auto text-2xl font-bold text-white">
-          Son {feed.windowHours} saat · {rows.length.toLocaleString('tr-TR')} deprem
+          {t.lastHours(feed.windowHours, formatCount(rows.length, lang))}
         </h1>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Konum ara (ör. Malatya)"
+          placeholder={t.searchPlaceholder}
           className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm outline-none focus:border-sky-500"
         />
         <select
           value={source ?? ''}
           onChange={(e) => setSource(e.target.value)}
           className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm"
-          aria-label="Kaynak"
+          aria-label={t.source}
         >
-          <option value="">Tüm kaynaklar</option>
+          <option value="">{t.allSources}</option>
           {Object.values(SOURCES).map((s) => (
             <option key={s.id} value={s.id}>
-              {s.name} ({s.region})
+              {s.name} ({regionOf(s, lang)})
             </option>
           ))}
         </select>
@@ -67,11 +72,11 @@ export default function EarthquakeTable({ initial }: { initial: EarthquakeFeed |
           value={minMag}
           onChange={(e) => setMinMag(Number(e.target.value))}
           className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm"
-          aria-label="En küçük büyüklük"
+          aria-label={t.minMagnitude}
         >
           {[0, 2, 3, 4, 5, 6].map((m) => (
             <option key={m} value={m}>
-              {m === 0 ? 'Tüm büyüklükler' : `M${m}+`}
+              {m === 0 ? t.allMagnitudes : `M${m}+`}
             </option>
           ))}
         </select>
@@ -81,11 +86,11 @@ export default function EarthquakeTable({ initial }: { initial: EarthquakeFeed |
         <table className="w-full text-sm">
           <thead className="bg-slate-900 text-left text-xs uppercase tracking-wide text-slate-400">
             <tr>
-              <th className="px-3 py-2">Büyüklük</th>
-              <th className="px-3 py-2">Konum</th>
-              <th className="px-3 py-2">Zaman</th>
-              <th className="px-3 py-2">Derinlik</th>
-              <th className="px-3 py-2">Kaynak</th>
+              <th className="px-3 py-2">{t.magnitude}</th>
+              <th className="px-3 py-2">{t.location}</th>
+              <th className="px-3 py-2">{t.time}</th>
+              <th className="px-3 py-2">{t.depth}</th>
+              <th className="px-3 py-2">{t.source}</th>
               <th className="px-3 py-2" />
             </tr>
           </thead>
@@ -103,8 +108,8 @@ export default function EarthquakeTable({ initial }: { initial: EarthquakeFeed |
                 </td>
                 <td className="px-3 py-2">{eq.location || '-'}</td>
                 <td className="whitespace-nowrap px-3 py-2">
-                  <time dateTime={eq.time}>{formatDateTime(eq.time)}</time>
-                  {now && <span className="block text-xs text-slate-500">{formatRelative(eq.time, now)}</span>}
+                  <time dateTime={eq.time}>{formatDateTime(eq.time, lang)}</time>
+                  {now && <span className="block text-xs text-slate-500">{formatRelative(eq.time, now, lang)}</span>}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2">{formatDepth(eq.depth)}</td>
                 <td className="px-3 py-2 text-xs">
@@ -117,13 +122,13 @@ export default function EarthquakeTable({ initial }: { initial: EarthquakeFeed |
                     rel="noopener noreferrer"
                     className="text-sky-400 hover:underline"
                   >
-                    Harita
+                    {t.mapLink}
                   </a>
                   {eq.url && (
                     <>
                       {' · '}
                       <a href={eq.url} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">
-                        Detay
+                        {t.details}
                       </a>
                     </>
                   )}
@@ -132,14 +137,14 @@ export default function EarthquakeTable({ initial }: { initial: EarthquakeFeed |
             ))}
           </tbody>
         </table>
-        {rows.length === 0 && <p className="p-6 text-center text-slate-400">Kayıt yok.</p>}
+        {rows.length === 0 && <p className="p-6 text-center text-slate-400">{t.noRecords}</p>}
       </div>
       {rows.length > shown && (
         <button
           onClick={() => setShown((n) => n + PAGE)}
           className="mx-auto mt-4 block rounded-md bg-slate-800 px-4 py-2 text-sm hover:bg-slate-700"
         >
-          Daha fazla göster ({rows.length - shown})
+          {t.showMore(rows.length - shown)}
         </button>
       )}
     </div>

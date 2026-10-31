@@ -9,6 +9,8 @@ interface SourceDefinition {
   name: string;
   fullName: string;
   region: string;
+  /** Bölge adının İngilizcesi */
+  regionEn: string;
   homepage: string;
   /** Birleştirmede hangi kaydın gösterileceği: küçük sayı = öncelikli */
   priority: number;
@@ -21,6 +23,8 @@ const DEFINITIONS = {
     name: 'AFAD',
     fullName: 'AFAD Deprem Dairesi Başkanlığı',
     region: 'Türkiye',
+
+    regionEn: 'Türkiye',
     homepage: 'https://deprem.afad.gov.tr',
     priority: 1,
   },
@@ -28,6 +32,8 @@ const DEFINITIONS = {
     name: 'Kandilli',
     fullName: 'Boğaziçi Üni. Kandilli Rasathanesi (KOERI)',
     region: 'Türkiye',
+
+    regionEn: 'Türkiye',
     homepage: 'http://www.koeri.boun.edu.tr',
     priority: 2,
   },
@@ -35,6 +41,8 @@ const DEFINITIONS = {
     name: 'INGV',
     fullName: 'Istituto Nazionale di Geofisica e Vulcanologia',
     region: 'İtalya',
+
+    regionEn: 'Italy',
     homepage: 'https://terremoti.ingv.it',
     priority: 3,
   },
@@ -42,6 +50,8 @@ const DEFINITIONS = {
     name: 'GeoNet',
     fullName: 'GeoNet',
     region: 'Yeni Zelanda',
+
+    regionEn: 'New Zealand',
     homepage: 'https://www.geonet.org.nz',
     priority: 3,
   },
@@ -49,6 +59,8 @@ const DEFINITIONS = {
     name: 'GA',
     fullName: 'Geoscience Australia',
     region: 'Avustralya',
+
+    regionEn: 'Australia',
     homepage: 'https://earthquakes.ga.gov.au',
     priority: 3,
   },
@@ -56,6 +68,8 @@ const DEFINITIONS = {
     name: 'JMA',
     fullName: 'Japan Meteorological Agency',
     region: 'Japonya',
+
+    regionEn: 'Japan',
     homepage: 'https://www.jma.go.jp',
     priority: 3,
   },
@@ -63,6 +77,8 @@ const DEFINITIONS = {
     name: 'SSN',
     fullName: 'Servicio Sismológico Nacional',
     region: 'Meksika',
+
+    regionEn: 'Mexico',
     homepage: 'http://www.ssn.unam.mx',
     priority: 3,
   },
@@ -70,6 +86,8 @@ const DEFINITIONS = {
     name: 'SED',
     fullName: 'Swiss Seismological Service (ETH Zürich)',
     region: 'İsviçre ve Alpler',
+
+    regionEn: 'Switzerland and the Alps',
     homepage: 'http://www.seismo.ethz.ch',
     priority: 3,
   },
@@ -77,6 +95,8 @@ const DEFINITIONS = {
     name: 'RéNaSS',
     fullName: 'EPOS-France / RéNaSS',
     region: 'Fransa ve denizaşırı bölgeler',
+
+    regionEn: 'France and overseas territories',
     homepage: 'https://renass.unistra.fr',
     priority: 3,
   },
@@ -84,6 +104,8 @@ const DEFINITIONS = {
     name: 'IGN',
     fullName: 'Instituto Geográfico Nacional',
     region: 'İspanya, Fas, Kanarya',
+
+    regionEn: 'Spain, Morocco, Canaries',
     homepage: 'https://www.ign.es/web/ign/portal/sis-catalogo-terremotos',
     priority: 3,
   },
@@ -91,6 +113,8 @@ const DEFINITIONS = {
     name: 'IPMA',
     fullName: 'Instituto Português do Mar e da Atmosfera',
     region: 'Portekiz, Azorlar',
+
+    regionEn: 'Portugal, Azores',
     homepage: 'https://www.ipma.pt',
     priority: 3,
   },
@@ -98,6 +122,8 @@ const DEFINITIONS = {
     name: 'BMKG',
     fullName: 'Badan Meteorologi, Klimatologi, dan Geofisika',
     region: 'Endonezya',
+
+    regionEn: 'Indonesia',
     homepage: 'https://www.bmkg.go.id',
     priority: 3,
   },
@@ -105,6 +131,8 @@ const DEFINITIONS = {
     name: 'USP',
     fullName: 'Centro de Sismologia da USP (RSBR)',
     region: 'Brezilya',
+
+    regionEn: 'Brazil',
     homepage: 'https://www.moho.iag.usp.br',
     priority: 3,
   },
@@ -112,6 +140,8 @@ const DEFINITIONS = {
     name: 'NOA',
     fullName: 'National Observatory of Athens, Geodynamics Institute',
     region: 'Yunanistan ve Ege',
+
+    regionEn: 'Greece and the Aegean',
     homepage: 'https://www.gein.noa.gr',
     priority: 3,
   },
@@ -119,6 +149,8 @@ const DEFINITIONS = {
     name: 'EMSC',
     fullName: 'European-Mediterranean Seismological Centre',
     region: 'Dünya',
+
+    regionEn: 'Worldwide',
     homepage: 'https://www.emsc-csem.org',
     priority: 5,
   },
@@ -126,6 +158,8 @@ const DEFINITIONS = {
     name: 'USGS',
     fullName: 'United States Geological Survey',
     region: 'Dünya',
+
+    regionEn: 'Worldwide',
     homepage: 'https://earthquake.usgs.gov',
     priority: 6,
   },
@@ -133,6 +167,8 @@ const DEFINITIONS = {
     name: 'GEOFON',
     fullName: 'GFZ GEOFON',
     region: 'Dünya',
+
+    regionEn: 'Worldwide',
     homepage: 'https://geofon.gfz.de',
     priority: 7,
   },

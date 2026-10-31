@@ -9,6 +9,7 @@ Veriler yalnızca kurumların resmi API'lerinden ve kendi yayınladıkları besl
 - **Birleşik akış:** Sunucu 17 kaynağı kendi aralıklarıyla (30–120 sn) çeker, tek formata çevirir ve aynı depremi raporlayan kayıtları birleştirir (zaman, mesafe ve büyüklük toleransıyla). Tarayıcı bu akışı 30 sn'de bir yeniler; sekme arka plandayken durur.
 - **Önbellek:** Kaynak başına bellek içi önbellek, eş zamanlı istekleri tek yukarı akış isteğinde toplar, hata olursa son sağlam veriyi göstermeye devam eder. API yanıtları CDN'de 30 sn önbelleklenir; dış kaynaklara giden istek sayısı ziyaretçi sayısından bağımsızdır.
 - **Hızlı ilk açılış:** Sunucu açılır açılmaz (`instrumentation.ts`) tüm kaynakları çekmeye başlar. Önbellek henüz boşken gelen ilk istek yavaş bir kaynağı en fazla 1,5 sn bekler; yetişemeyen kaynak `pending: true` olarak işaretlenir ve hazır olan verilerle hemen yanıt verilir. Tarayıcı bekleyen kaynak varsa 3 sn sonra tekrar sorar. Hiç başarılı olamamış ama hata veren bir kaynak istekleri bekletmez, arka planda yeniden denenir. Ölçüm (production): soğuk ilk istek ~1,7 sn, sonraki istekler ~120 ms.
+- **İki dil:** Türkçe (varsayılan, `/`, `/liste`, `/gecmis`) ve İngilizce (`/en`, `/en/list`, `/en/history`, `/en/api-docs`). Başlıktaki TR/EN düğmesi dili değiştirir ve seçimi çereze yazar. İlk ziyarette tarayıcı dilleri arasında Türkçe yoksa İngilizce sayfaya yönlendirilir; `Accept-Language` göndermeyen arama motorları Türkçede kalır. Sayfalar her iki dilde de statik üretilir.
 - **Harita:** Leaflet + canvas çizim (binlerce işaret akıcı), yalnızca değişen işaretler güncellenir. Altlık anahtarsız Esri koyu gri haritadır; kareler yüklenemezse otomatik olarak OpenStreetMap'e geçer.
 
 ## Kaynaklar
@@ -96,16 +97,18 @@ Dockerfile                   Üretim imajı (Node 24)
 docker-compose.yml           Uygulama + PostgreSQL (Coolify)
 src/
   app/
-    page.tsx                 Canlı dünya haritası
-    liste/page.tsx           Filtrelenebilir liste
-    gecmis/page.tsx          Geçmiş sayfası (arşivden harita + liste)
-    api-docs/page.tsx
+    [lang]/                  Sayfalar (tr, en); kök düzen ve dil seçici burada
+      page.tsx               Canlı dünya haritası
+      liste/page.tsx         Filtrelenebilir liste
+      gecmis/page.tsx        Geçmiş sayfası (arşivden harita + liste)
+      api-docs/page.tsx
     api/earthquakes/route.ts
     api/v1/[source]/route.ts
     api/history/route.ts     Geçmiş API'si
   components/                LiveDashboard, LiveMap, EarthquakeTable
   hooks/                     useEarthquakeFeed (30 sn yenileme + canlı), useEmscLive (WebSocket)
   lib/
+    i18n.ts                  Dil sözlüğü (tr, en) ve adres eşlemesi
     sources/parsers.ts       Her kaynağın yanıtını ortak tipe çeviren saf fonksiyonlar
     sources/fetchers.ts      Kaynak URL'leri, zaman aşımı, TTL
     sources/index.ts         Önbellek, ilk açılış ısıtması ve birleştirme (yalnız sunucu)
@@ -115,9 +118,10 @@ src/
     archive.ts               PostgreSQL arşivi (DATABASE_URL ile isteğe bağlı)
     format.ts                Tarih, büyüklük ve harita işaret renk/boyut yardımcıları
   instrumentation.ts         Sunucu açılışında önbelleği ısıtır
-  middleware.ts              /api hız sınırı
+  middleware.ts              /api hız sınırı; sayfa adreslerini dile göre app/[lang] altına yönlendirir
 tests/                       Ayrıştırıcı, birleştirme ve filtre testleri (npm test)
   archive.test.ts            Geçmiş parametreleri; TEST_DATABASE_URL ile veritabanı testi
+  i18n.test.ts               Dil adresleri ve sözlük bütünlüğü
 ```
 
 ## Yeni kaynak ekleme

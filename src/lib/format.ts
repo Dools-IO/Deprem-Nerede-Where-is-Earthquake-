@@ -1,14 +1,20 @@
-const rtf = new Intl.RelativeTimeFormat('tr', { numeric: 'auto' });
-const dtf = new Intl.DateTimeFormat('tr-TR', {
+import { locale, type Lang } from '@/lib/i18n';
+
+const DATE_OPTIONS: Intl.DateTimeFormatOptions = {
   day: '2-digit',
   month: '2-digit',
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
   second: '2-digit',
-});
+};
+const FORMATTERS = {
+  tr: { rtf: new Intl.RelativeTimeFormat('tr', { numeric: 'auto' }), dtf: new Intl.DateTimeFormat(locale('tr'), DATE_OPTIONS) },
+  en: { rtf: new Intl.RelativeTimeFormat('en', { numeric: 'auto' }), dtf: new Intl.DateTimeFormat(locale('en'), DATE_OPTIONS) },
+};
 
-export function formatRelative(iso: string, now: number): string {
+export function formatRelative(iso: string, now: number, lang: Lang): string {
+  const { rtf } = FORMATTERS[lang];
   // Sunucu saati istemciden biraz ileride olabilir; gelecek zamanı "şimdi" say
   const diff = Math.min(0, (Date.parse(iso) - now) / 1000);
   const abs = Math.abs(diff);
@@ -18,8 +24,8 @@ export function formatRelative(iso: string, now: number): string {
   return rtf.format(Math.round(diff / 86400), 'day');
 }
 
-export function formatDateTime(iso: string): string {
-  return dtf.format(new Date(iso));
+export function formatDateTime(iso: string, lang: Lang): string {
+  return FORMATTERS[lang].dtf.format(new Date(iso));
 }
 
 export const formatMagnitude = (m: number) => m.toFixed(1);

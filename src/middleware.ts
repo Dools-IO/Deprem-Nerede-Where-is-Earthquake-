@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { internalPath, switchPath } from '@/lib/i18n';
 
 /*
  * Basit, örnek başına (in-memory) hız sınırı. Tek sunucuda iş görür; birden çok
@@ -20,6 +21,10 @@ function clientIp(req: NextRequest): string {
 }
 
 export function middleware(req: NextRequest) {
+  return req.nextUrl.pathname.startsWith('/api/') ? rateLimit(req) : routeLanguage(req);
+}
+
+function rateLimit(req: NextRequest) {
   const now = Date.now();
   const ip = clientIp(req);
 
@@ -53,6 +58,39 @@ export function middleware(req: NextRequest) {
   return res;
 }
 
+/*
+ * Dil yönlendirmesi. Türkçe adresler önek almaz (/liste), İngilizce /en altındadır;
+ * ikisi de app/[lang] altındaki iç yola (/tr/liste, /en/liste) yeniden yazılır.
+ */
+function routeLanguage(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+  const url = req.nextUrl.clone();
+
+  // İç yollar doğrudan açılmasın, tek bir adres kalsın
+  if (pathname === '/tr' || pathname.startsWith('/tr/')) {
+    url.pathname = pathname.slice(3) || '/';
+    return NextResponse.redirect(url, 308);
+  }
+
+  // İlk ziyarette tarayıcı Türkçe istemiyorsa İngilizceye yönlendir. Dil seçici çerez yazar,
+  // sonrasında seçim geçerlidir. Accept-Language göndermeyen arama motorları Türkçede kalır.
+  const isEnglish = pathname === '/en' || pathname.startsWith('/en/');
+  if (!isEnglish && req.method === 'GET' && !req.cookies.has('lang') && prefersEnglish(req.headers.get('accept-language'))) {
+    url.pathname = switchPath(pathname, 'en');
+    return NextResponse.redirect(url);
+  }
+
+  url.pathname = internalPath(pathname);
+  return NextResponse.rewrite(url);
+}
+
+/** Başlık var ve kabul edilen diller arasında Türkçe yoksa */
+function prefersEnglish(header: string | null): boolean {
+  if (!header) return false;
+  return !header.split(',').some((part) => part.trim().toLowerCase().startsWith('tr'));
+}
+
 export const config = {
-  matcher: '/api/:path*',
+  // Next iç dosyaları ve uzantılı statik dosyalar (resim, favicon) hariç her şey
+  matcher: '/((?!_next/|.*\\..*).*)',
 };
