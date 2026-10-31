@@ -6,12 +6,13 @@ const en: Dictionary = {
     siteName: 'Where is the Earthquake?',
     homeTitle: 'Where is the Earthquake? Live world earthquake map',
     description:
-      'Follow every earthquake in the world live on one map, from AFAD, Kandilli, EMSC, USGS and 16 official agencies.',
+      'Follow every earthquake in the world live on one map: 17 official sources including AFAD, Kandilli, EMSC and USGS.',
     listTitle: 'Latest earthquakes',
     historyTitle: 'Past earthquakes',
     apiTitle: 'API',
   },
   nav: {
+    tagline: 'Live world earthquake map',
     map: 'Map',
     list: 'List',
     history: 'History',
@@ -43,6 +44,12 @@ const en: Dictionary = {
     sortStrongest: 'Strongest',
   },
   live: {
+    statTotal: (h: number) => `Last ${h} hours`,
+    latest: 'Latest',
+    panelTitle: 'Recent earthquakes',
+    searchPlaceholder: 'Search location…',
+    sourcesLabel: 'Sources',
+    sourcesActive: 'active sources',
     status: { live: 'LIVE', connecting: 'Connecting', offline: 'Live feed off' },
     statusTitle: {
       live: 'Connected to the EMSC live feed',
@@ -74,11 +81,19 @@ const en: Dictionary = {
     openAt: (name: string) => `Open on ${name} →`,
   },
   list: {
+    eyebrow: 'Live list',
+    title: 'Recent earthquakes',
+    subtitle: (hours: number) => `Every earthquake worldwide in the last ${hours} hours, from 17 official sources, in one list.`,
+    statShown: 'Listed',
+    statStrongest: 'Strongest',
+    statLatest: 'Latest',
     heading: (hours: number, count: string) => `Last ${hours} hours · ${count} earthquakes`,
     searchPlaceholder: 'Search location (e.g. Tokyo)',
     empty: 'No records.',
   },
   history: {
+    eyebrow: 'Archive',
+    subtitle: 'Search every earthquake the server has recorded by date, magnitude and source.',
     heading: 'Past earthquakes',
     from: 'From',
     to: 'To',
@@ -91,6 +106,7 @@ const en: Dictionary = {
     unknownError: 'Unknown error',
   },
   api: {
+    eyebrow: 'For developers',
     title: 'Earthquake API',
     intro:
       'Every source is fetched on the server from official APIs or feeds published by the agencies themselves, converted to one format, and reports of the same earthquake are merged. The API is public.',

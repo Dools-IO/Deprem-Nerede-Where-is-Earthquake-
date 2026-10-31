@@ -34,7 +34,7 @@ function refresh(id: SourceId, entry: Entry): Promise<void> {
   entry.inflight = FETCHERS[id]
     .fetch()
     .then((data) => {
-      entry.data = data.filter(isValidEarthquake);
+      entry.data = data.filter((eq) => isValidEarthquake(eq));
       entry.updatedAt = Date.now();
       entry.error = undefined;
       // Kalıcı arşive arka planda yaz (DATABASE_URL yoksa hiçbir şey yapmaz)

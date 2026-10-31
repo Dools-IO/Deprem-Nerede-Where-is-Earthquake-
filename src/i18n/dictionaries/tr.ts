@@ -8,12 +8,13 @@ const tr = {
     siteName: 'Deprem Nerede?',
     homeTitle: 'Deprem Nerede? Dünya geneli canlı deprem haritası',
     description:
-      'AFAD, Kandilli, EMSC, USGS ve 16 resmi kurumdan dünyadaki tüm depremleri tek haritada, canlı olarak takip edin.',
+      'Dünyadaki tüm depremleri tek haritada, canlı takip edin: AFAD, Kandilli, EMSC ve USGS dahil 17 resmi kaynak.',
     listTitle: 'Son depremler listesi',
     historyTitle: 'Geçmiş depremler',
     apiTitle: 'API',
   },
   nav: {
+    tagline: 'Canlı dünya deprem haritası',
     map: 'Harita',
     list: 'Liste',
     history: 'Geçmiş',
@@ -45,6 +46,12 @@ const tr = {
     sortStrongest: 'En büyük',
   },
   live: {
+    statTotal: (h: number) => `Son ${h} saat`,
+    latest: 'Son deprem',
+    panelTitle: 'Son depremler',
+    searchPlaceholder: 'Konum ara…',
+    sourcesLabel: 'Kaynaklar',
+    sourcesActive: 'aktif kaynak',
     status: { live: 'CANLI', connecting: 'Bağlanıyor', offline: 'Canlı akış yok' },
     statusTitle: {
       live: 'EMSC canlı akışına bağlı',
@@ -76,11 +83,19 @@ const tr = {
     openAt: (name: string) => `${name} sayfasında aç →`,
   },
   list: {
+    eyebrow: 'Canlı liste',
+    title: 'Son depremler',
+    subtitle: (hours: number) => `Dünya genelinde son ${hours} saatte 17 resmi kaynaktan gelen tüm depremler, tek listede.`,
+    statShown: 'Listelenen',
+    statStrongest: 'En büyük',
+    statLatest: 'Son deprem',
     heading: (hours: number, count: string) => `Son ${hours} saat · ${count} deprem`,
     searchPlaceholder: 'Konum ara (ör. Malatya)',
     empty: 'Kayıt yok.',
   },
   history: {
+    eyebrow: 'Arşiv',
+    subtitle: 'Sunucunun kaydettiği tüm depremler arasında tarih, büyüklük ve kaynağa göre arama yapın.',
     heading: 'Geçmiş depremler',
     from: 'Başlangıç',
     to: 'Bitiş',
@@ -93,6 +108,7 @@ const tr = {
     unknownError: 'Bilinmeyen hata',
   },
   api: {
+    eyebrow: 'Geliştiriciler için',
     title: 'Deprem API',
     intro:
       'Tüm kaynaklar resmi API veya kurumların kendi yayınladığı beslemelerden sunucu tarafında çekilir, tek formata çevrilir ve aynı depremi raporlayan kayıtlar birleştirilir. API herkese açıktır.',

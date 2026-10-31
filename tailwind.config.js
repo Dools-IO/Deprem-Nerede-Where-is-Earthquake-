@@ -7,7 +7,13 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'var(--font-sans)', 'sans-serif'],
+      },
       colors: {
+        ink: { 950: '#060b18', 900: '#0b1324', 850: '#0f192e', 800: '#15213a', 700: '#22304d' },
+        quake: { 400: '#ff7a45', 500: '#ff5a36', 600: '#e11d48' },
         primary: {
           50: '#f0f9ff',
           100: '#e0f2fe',
