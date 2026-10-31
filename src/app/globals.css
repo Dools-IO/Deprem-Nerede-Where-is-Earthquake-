@@ -100,3 +100,38 @@ html .leaflet-container {
   font: inherit;
   background: #0b1220;
 }
+
+/* Harita kontrolleri koyu tema; atıf şeridi küçük ve tek satır */
+.leaflet-container .leaflet-control-attribution {
+  background: rgba(2, 6, 23, 0.7);
+  color: #94a3b8;
+  font-size: 10px;
+  line-height: 1.4;
+  max-width: 70vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.leaflet-container .leaflet-control-attribution a {
+  color: #cbd5e1;
+}
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-bottom-color: #1e293b;
+}
+.leaflet-bar {
+  border: 1px solid #1e293b !important;
+}
+/* Dar ekranda parmakla yakınlaştırılır; düğmeler alanı boşuna kaplamasın */
+@media (max-width: 639px) {
+  .leaflet-control-zoom {
+    display: none;
+  }
+}
+
+/* Mobil alt panel: kaydırırken arka sayfa kaymasın */
+.overscroll-contain {
+  overscroll-behavior: contain;
+}

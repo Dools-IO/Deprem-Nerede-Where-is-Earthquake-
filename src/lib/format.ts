@@ -1,25 +1,46 @@
-const rtf = new Intl.RelativeTimeFormat('tr', { numeric: 'auto' });
-const dtf = new Intl.DateTimeFormat('tr-TR', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-});
+import { INTL_LOCALE, type Locale } from '@/i18n/config';
 
-export function formatRelative(iso: string, now: number): string {
-  // Sunucu saati istemciden biraz ileride olabilir; gelecek zamanı "şimdi" say
-  const diff = Math.min(0, (Date.parse(iso) - now) / 1000);
-  const abs = Math.abs(diff);
-  if (abs < 60) return rtf.format(Math.round(diff), 'second');
-  if (abs < 3600) return rtf.format(Math.round(diff / 60), 'minute');
-  if (abs < 86400) return rtf.format(Math.round(diff / 3600), 'hour');
-  return rtf.format(Math.round(diff / 86400), 'day');
+export interface Formatters {
+  /** "5 dakika önce" / "5 minutes ago" */
+  relative(iso: string, now: number): string;
+  /** Yerel saatle tarih ve saat */
+  dateTime(iso: string): string;
+  /** Binlik ayraçlı sayı */
+  number(n: number): string;
 }
 
-export function formatDateTime(iso: string): string {
-  return dtf.format(new Date(iso));
+const cache = new Map<Locale, Formatters>();
+
+/** Dile göre biçimlendiriciler; Intl nesneleri pahalı olduğundan dil başına bir kez kurulur */
+export function getFormatters(locale: Locale): Formatters {
+  let f = cache.get(locale);
+  if (f) return f;
+  const tag = INTL_LOCALE[locale];
+  const rtf = new Intl.RelativeTimeFormat(tag, { numeric: 'auto' });
+  const dtf = new Intl.DateTimeFormat(tag, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+  const nf = new Intl.NumberFormat(tag);
+  f = {
+    relative(iso, now) {
+      // Sunucu saati istemciden biraz ileride olabilir; gelecek zamanı "şimdi" say
+      const diff = Math.min(0, (Date.parse(iso) - now) / 1000);
+      const abs = Math.abs(diff);
+      if (abs < 60) return rtf.format(Math.round(diff), 'second');
+      if (abs < 3600) return rtf.format(Math.round(diff / 60), 'minute');
+      if (abs < 86400) return rtf.format(Math.round(diff / 3600), 'hour');
+      return rtf.format(Math.round(diff / 86400), 'day');
+    },
+    dateTime: (iso) => dtf.format(new Date(iso)),
+    number: (n) => nf.format(n),
+  };
+  cache.set(locale, f);
+  return f;
 }
 
 export const formatMagnitude = (m: number) => m.toFixed(1);

@@ -1,7 +1,7 @@
 import 'server-only';
 import type { Earthquake, EarthquakeFeed, SourceId, SourceStatus } from '@/types';
 import { isValidEarthquake, mergeEarthquakes } from '@/lib/merge';
-import { SOURCES, SOURCE_IDS } from '@/lib/sourceInfo';
+import { PUBLIC_SOURCE_IDS, SOURCES, SOURCE_IDS } from '@/lib/sourceInfo';
 import { FETCHERS, WINDOW_HOURS } from './fetchers';
 import { saveReports } from '@/lib/archive';
 
@@ -96,23 +96,32 @@ export function warmUp(): void {
   for (const id of SOURCE_IDS) void getSource(id);
 }
 
-let mergedCache: { key: string; value: Earthquake[] } | null = null;
+/**
+ * Akışın kapsamı. `app`: sitedeki harita, tüm kaynaklar. `public`: herkese açık API,
+ * yalnız yeniden dağıtım lisansı olan kaynaklar (sourceInfo'da publicApi: true).
+ */
+export type FeedScope = 'app' | 'public';
 
-export async function getEarthquakeFeed(): Promise<EarthquakeFeed> {
-  const entries = await Promise.all(SOURCE_IDS.map(async (id) => [id, await getSource(id)] as const));
+const mergedCache = new Map<FeedScope, { key: string; value: Earthquake[] }>();
+
+export async function getEarthquakeFeed(scope: FeedScope = 'app'): Promise<EarthquakeFeed> {
+  const ids = scope === 'public' ? PUBLIC_SOURCE_IDS : SOURCE_IDS;
+  const entries = await Promise.all(ids.map(async (id) => [id, await getSource(id)] as const));
 
   // Birleştirme yalnızca bir kaynağın verisi değiştiğinde yeniden yapılır
   const key = entries.map(([id, e]) => `${id}:${usable(e) ? e.updatedAt : 0}`).join('|');
-  if (mergedCache?.key !== key) {
+  let merged = mergedCache.get(scope);
+  if (merged?.key !== key) {
     const all = entries.flatMap(([, e]) => (usable(e) ? e.data : []));
-    mergedCache = { key, value: mergeEarthquakes(all) };
+    merged = { key, value: mergeEarthquakes(all) };
+    mergedCache.set(scope, merged);
   }
 
   return {
     updatedAt: new Date().toISOString(),
     windowHours: WINDOW_HOURS,
-    count: mergedCache.value.length,
+    count: merged.value.length,
     sources: entries.map(([id, e]) => status(id, e)),
-    earthquakes: mergedCache.value,
+    earthquakes: merged.value,
   };
 }
