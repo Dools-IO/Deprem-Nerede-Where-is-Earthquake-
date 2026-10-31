@@ -108,6 +108,13 @@ const DEFINITIONS = {
     homepage: 'https://www.moho.iag.usp.br',
     priority: 3,
   },
+  noa: {
+    name: 'NOA',
+    fullName: 'National Observatory of Athens, Geodynamics Institute',
+    region: 'Yunanistan ve Ege',
+    homepage: 'https://www.gein.noa.gr',
+    priority: 3,
+  },
   emsc: {
     name: 'EMSC',
     fullName: 'European-Mediterranean Seismological Centre',
