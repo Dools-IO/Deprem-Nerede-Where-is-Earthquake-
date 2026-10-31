@@ -41,7 +41,7 @@ FDSN veri merkezleri listesi: https://www.fdsn.org/datacenters/
 
 ## Kurulum
 
-Node.js 18.18 veya üzeri gerekir (20+ önerilir).
+Node.js 22 veya üzeri gerekir (24 LTS önerilir).
 
 ```bash
 npm install
@@ -75,17 +75,25 @@ Ayrıntılar uygulamadaki `/api-docs` sayfasında. IP başına dakikada 60 istek
 
 `/gecmis` sayfası tarih aralığı (en fazla 31 gün), büyüklük ve kaynak filtresiyle harita ve liste gösterir. Arşiv, sunucunun kayda başladığı andan itibaren dolar; daha eski depremler arşivde bulunmaz.
 
-### Coolify ile kurulum
+### Coolify ile kurulum (veritabanı otomatik)
 
-1. Projede **+ New > Database > PostgreSQL** ekleyin ve başlatın.
-2. Veritabanının **Postgres URL (internal)** değerini kopyalayın.
-3. Uygulamanın **Environment Variables** kısmına `DATABASE_URL` olarak ekleyin.
-4. Uygulamayı yeniden dağıtın (Redeploy).
-5. `/api/history` ve `/gecmis` adreslerini açarak kontrol edin.
+Depoda uygulama ve PostgreSQL'i birlikte tanımlayan bir `docker-compose.yml` var. Coolify veritabanını, şifresini ve `DATABASE_URL`'i kendisi oluşturur:
+
+1. Coolify'da **+ New > Public/Private Repository** ile bu depoyu seçin.
+2. Build Pack olarak **Docker Compose** seçin (dosya: `/docker-compose.yml`).
+3. `app` servisine alan adınızı girin (boş bırakırsanız Coolify otomatik bir adres verir).
+4. **Deploy**. PostgreSQL ayağa kalkar, `earthquake_reports` tablosu ilk bağlantıda oluşur.
+5. `/gecmis` ve `/api/history` adreslerini açarak kontrol edin.
+
+Veritabanı verisi `deprem-db` adlı kalıcı birimde durur; yeniden dağıtımda silinmez.
+
+Mevcut bir Nixpacks kurulumuna arşiv eklemek isterseniz: ayrı bir PostgreSQL kaynağı ekleyip **Postgres URL (internal)** değerini uygulamaya `DATABASE_URL` olarak girin ve yeniden dağıtın.
 
 ## Proje yapısı
 
 ```
+Dockerfile                   Üretim imajı (Node 24)
+docker-compose.yml           Uygulama + PostgreSQL (Coolify)
 src/
   app/
     page.tsx                 Canlı dünya haritası
