@@ -49,9 +49,6 @@ export function clientIp(headers: Headers): string {
   return headers.get('x-real-ip') ?? headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
 }
 
-/** Sunucunun kendisi (Docker healthcheck vb.) asla sınırlanmaz */
-const isLoopback = (ip: string) => ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
-
 export type Decision =
   | { action: 'allow'; headers: Record<string, string> }
   | { action: 'ban' }
@@ -60,7 +57,9 @@ export type Decision =
 export function checkAccess(ip: string, scope: RuleName, path: string, now = Date.now()): Decision {
   const rule = store.rules.get(ip);
   if (rule?.kind === 'ban') return { action: 'ban' };
-  if (rule?.kind === 'allow' || isLoopback(ip)) return { action: 'allow', headers: {} };
+  // IP başlıktan okunduğu için "yerel IP" istisnası yok (sahte X-Real-IP ile atlatılabilirdi);
+  // healthcheck /api/health üzerinden middleware'de zaten muaf.
+  if (rule?.kind === 'allow') return { action: 'allow', headers: {} };
 
   const limits: RateRule = RATE_LIMITS[scope];
   const key = `${scope}:${ip}`;
