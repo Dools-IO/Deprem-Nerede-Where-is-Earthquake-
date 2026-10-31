@@ -1,6 +1,7 @@
 import '../globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import Script from 'next/script';
 import { getDictionary, LOCALES } from '@/i18n';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import { pageMetadata, resolveLocale } from '@/i18n/metadata';
@@ -32,6 +33,18 @@ export default async function RootLayout({ children, params }: Params & { childr
   const locale = await resolveLocale(params);
   return (
     <html lang={locale}>
+      <head>
+        <Script
+          src="https://analytics.dools.co/script.js"
+          data-website-id="9f819264-a58a-47e2-b788-0dc5765c7383"
+          strategy="afterInteractive"
+        />
+        <Script
+          src="https://analytics.dools.co/recorder.js"
+          data-website-id="9f819264-a58a-47e2-b788-0dc5765c7383"
+          strategy="afterInteractive"
+        />
+      </head>
       <body className={inter.className}>
         <I18nProvider locale={locale}>
           <SiteHeader />
