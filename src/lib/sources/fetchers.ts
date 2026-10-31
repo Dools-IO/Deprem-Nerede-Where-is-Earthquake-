@@ -150,6 +150,12 @@ export const FETCHERS: Record<SourceId, SourceFetcher> = {
     120_000,
   ),
 
+  noa: fdsnSource(
+    'noa',
+    'https://eida.gein.noa.gr/fdsnws/event/1/query',
+    () => 'https://www.gein.noa.gr',
+  ),
+
   ign: {
     ttlMs: 60_000,
     fetch: async () => sinceWindow(parseIGN(await getText('https://www.ign.es/ign/RssTools/sismologia.xml'))),
