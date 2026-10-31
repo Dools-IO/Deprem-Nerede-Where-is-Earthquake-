@@ -3,16 +3,18 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState } from 'react';
 import type { Earthquake } from '@/types';
+import { useI18n } from '@/i18n/I18nProvider';
 import { SOURCES } from '@/lib/sourceInfo';
-import { formatDateTime, formatDepth, formatMagnitude, magnitudeColor } from '@/lib/format';
+import QuakeTable from './QuakeTable';
+import { inputClass } from './ui';
 
 const LiveMap = dynamic(() => import('./LiveMap'), {
   ssr: false,
   loading: () => <div className="h-full w-full animate-pulse bg-slate-900" />,
 });
 
-const PAGE = 50;
 const NO_ARRIVALS = new Map<string, number>();
+const MAGS = [0, 2, 2.5, 3, 4, 5, 6];
 
 interface HistoryResponse {
   from: string;
@@ -28,6 +30,7 @@ const day = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export default function HistoryView() {
+  const { t, fmt, locale } = useI18n();
   const [from, setFrom] = useState(() => day(new Date(Date.now() - 6 * 86_400_000)));
   const [to, setTo] = useState(() => day(new Date()));
   const [minMag, setMinMag] = useState(2.5);
@@ -35,8 +38,9 @@ export default function HistoryView() {
   const [data, setData] = useState<HistoryResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [shown, setShown] = useState(PAGE);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Her yeni sonuçta tablo sayfalaması baştan başlasın
+  const [resultId, setResultId] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -46,25 +50,22 @@ export default function HistoryView() {
       const start = new Date(`${from}T00:00:00`);
       const end = new Date(`${to}T00:00:00`);
       end.setDate(end.getDate() + 1);
-      const q = new URLSearchParams({
-        from: start.toISOString(),
-        to: end.toISOString(),
-        limit: '10000',
-      });
+      const q = new URLSearchParams({ from: start.toISOString(), to: end.toISOString(), limit: '10000' });
       if (minMag > 0) q.set('minmag', String(minMag));
       if (source) q.set('source', source);
-      const res = await fetch(`/api/history?${q}`);
+      const res = await fetch(`/api/app/history?${q}`);
+      if (res.status === 503) throw new Error(t.history.unavailable);
       const json: HistoryResponse = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
       setData(json);
-      setShown(PAGE);
+      setResultId((n) => n + 1);
       setSelectedId(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bilinmeyen hata');
+      setError(err instanceof Error ? err.message : t.history.unknownError);
     } finally {
       setLoading(false);
     }
-  }, [from, to, minMag, source]);
+  }, [from, to, minMag, source, t]);
 
   // İlk açılışta son 7 günü getir
   const [initialLoad] = useState(() => load);
@@ -73,108 +74,68 @@ export default function HistoryView() {
   }, [initialLoad]);
 
   const rows = data?.earthquakes ?? [];
-  const input = 'rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm';
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 text-slate-200">
+      <h1 className="mb-4 text-2xl font-bold text-white">{t.history.heading}</h1>
       <form
-        className="mb-4 flex flex-wrap items-end gap-3"
+        className="mb-4 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end"
         onSubmit={(e) => {
           e.preventDefault();
           void load();
         }}
       >
-        <h1 className="mr-auto text-2xl font-bold text-white">Geçmiş depremler</h1>
         <label className="text-xs text-slate-400">
-          Başlangıç
-          <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className={`${input} block`} />
+          {t.history.from}
+          <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className={`${inputClass} mt-1 block w-full`} />
         </label>
         <label className="text-xs text-slate-400">
-          Bitiş
-          <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} className={`${input} block`} />
+          {t.history.to}
+          <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} className={`${inputClass} mt-1 block w-full`} />
         </label>
-        <select value={minMag} onChange={(e) => setMinMag(Number(e.target.value))} className={input} aria-label="En küçük büyüklük">
-          {[0, 2, 2.5, 3, 4, 5, 6].map((m) => (
+        <select value={minMag} onChange={(e) => setMinMag(Number(e.target.value))} className={inputClass} aria-label={t.common.magnitude}>
+          {MAGS.map((m) => (
             <option key={m} value={m}>
-              {m === 0 ? 'Tüm büyüklükler' : `M${m}+`}
+              {m === 0 ? t.common.allMagnitudes : `M${m}+`}
             </option>
           ))}
         </select>
-        <select value={source} onChange={(e) => setSource(e.target.value)} className={input} aria-label="Kaynak">
-          <option value="">Tüm kaynaklar</option>
+        <select value={source} onChange={(e) => setSource(e.target.value)} className={inputClass} aria-label={t.common.source}>
+          <option value="">{t.common.allSources}</option>
           {Object.values(SOURCES).map((s) => (
             <option key={s.id} value={s.id}>
-              {s.name} ({s.region})
+              {s.name} ({s.region[locale]})
             </option>
           ))}
         </select>
-        <button type="submit" disabled={loading} className="rounded-md bg-sky-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-60">
-          {loading ? 'Yükleniyor…' : 'Getir'}
+        <button
+          type="submit"
+          disabled={loading}
+          className="col-span-2 rounded-md bg-sky-600 px-5 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-60 sm:col-span-1"
+        >
+          {loading ? t.history.fetching : t.history.fetch}
         </button>
       </form>
 
-      {error && <p className="mb-4 rounded-md bg-red-950/60 p-3 text-sm text-red-200">{error}</p>}
+      {error && <p className="mb-4 rounded-md border border-red-900 bg-red-950/60 p-3 text-sm text-red-200">{error}</p>}
       {data && !error && (
         <p className="mb-3 text-sm text-slate-400">
-          <strong className="text-white">{data.count.toLocaleString('tr-TR')}</strong> deprem
-          {data.truncated && ' (aralık çok geniş, en yeni 10.000 kayıt gösteriliyor; aralığı daraltın veya büyüklük filtresi seçin)'}
-          . Arşiv, sunucunun kayda başladığı andan itibaren dolar.
+          <strong className="text-white">{t.common.earthquakes(fmt.number(data.count))}</strong>
+          {data.truncated && t.history.truncated}. {t.history.archiveNote}
         </p>
       )}
 
-      <div className="mb-4 h-[50vh] overflow-hidden rounded-lg border border-slate-800">
+      <div className="mb-4 h-[45vh] min-h-[280px] overflow-hidden rounded-lg border border-slate-800">
         <LiveMap earthquakes={rows} arrivals={NO_ARRIVALS} selectedId={selectedId} onSelect={setSelectedId} />
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-800">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-900 text-left text-xs uppercase tracking-wide text-slate-400">
-            <tr>
-              <th className="px-3 py-2">Büyüklük</th>
-              <th className="px-3 py-2">Konum</th>
-              <th className="px-3 py-2">Zaman</th>
-              <th className="px-3 py-2">Derinlik</th>
-              <th className="px-3 py-2">Kaynak</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.slice(0, shown).map((eq) => (
-              <tr
-                key={eq.id}
-                onClick={() => setSelectedId(eq.id)}
-                className={`cursor-pointer border-t border-slate-800 hover:bg-slate-900/60 ${selectedId === eq.id ? 'bg-slate-800' : ''}`}
-              >
-                <td className="px-3 py-2">
-                  <span
-                    className="inline-flex h-7 w-11 items-center justify-center rounded font-bold text-slate-950"
-                    style={{ background: magnitudeColor(eq.magnitude) }}
-                    title={eq.magType}
-                  >
-                    {formatMagnitude(eq.magnitude)}
-                  </span>
-                </td>
-                <td className="px-3 py-2">{eq.location || '-'}</td>
-                <td className="whitespace-nowrap px-3 py-2">
-                  <time dateTime={eq.time}>{formatDateTime(eq.time)}</time>
-                </td>
-                <td className="whitespace-nowrap px-3 py-2">{formatDepth(eq.depth)}</td>
-                <td className="px-3 py-2 text-xs">
-                  {[eq.source, ...(eq.alsoReportedBy ?? [])].map((s) => SOURCES[s]?.name ?? s).join(', ')}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {data && rows.length === 0 && <p className="p-6 text-center text-slate-400">Bu aralıkta kayıt yok.</p>}
-      </div>
-      {rows.length > shown && (
-        <button
-          onClick={() => setShown((n) => n + PAGE)}
-          className="mx-auto mt-4 block rounded-md bg-slate-800 px-4 py-2 text-sm hover:bg-slate-700"
-        >
-          Daha fazla göster ({rows.length.toLocaleString('tr-TR')} kayıttan {shown})
-        </button>
-      )}
+      <QuakeTable
+        key={resultId}
+        rows={rows}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+        emptyText={loading || !data ? t.common.loading : t.history.empty}
+      />
     </div>
   );
 }

@@ -48,7 +48,7 @@ export function useEarthquakeFeed(initial: EarthquakeFeed | null): FeedState {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/earthquakes', { cache: 'no-store' });
+      const res = await fetch('/api/app/feed', { cache: 'no-store' });
       if (!res.ok) throw new Error(String(res.status));
       const data: EarthquakeFeed = await res.json();
       setFeed((prev) => {

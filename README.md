@@ -1,135 +1,126 @@
-# Deprem Nerede? (Where's the Earthquake?)
+# Deprem Nerede? (Where is the Earthquake?)
 
-Dünyadaki tüm depremleri tek bir haritada, olabildiğince anlık gösteren Next.js uygulaması.
-Veriler yalnızca kurumların resmi API'lerinden ve kendi yayınladıkları beslemelerden alınır.
+**English** · [Türkçe](README.tr.md)
 
-## Nasıl çalışır
+A Next.js app that shows every earthquake in the world on one map, as close to real time as possible. Data comes only from the official APIs and feeds published by the agencies themselves. The interface is available in Turkish and English.
 
-- **Canlı akış:** Tarayıcı, EMSC'nin resmi WebSocket servisine bağlanır; dünyadaki her yeni deprem saniyeler içinde haritaya düşer.
-- **Birleşik akış:** Sunucu 17 kaynağı kendi aralıklarıyla (30–120 sn) çeker, tek formata çevirir ve aynı depremi raporlayan kayıtları birleştirir (zaman, mesafe ve büyüklük toleransıyla). Tarayıcı bu akışı 30 sn'de bir yeniler; sekme arka plandayken durur.
-- **Önbellek:** Kaynak başına bellek içi önbellek, eş zamanlı istekleri tek yukarı akış isteğinde toplar, hata olursa son sağlam veriyi göstermeye devam eder. API yanıtları CDN'de 30 sn önbelleklenir; dış kaynaklara giden istek sayısı ziyaretçi sayısından bağımsızdır.
-- **Hızlı ilk açılış:** Sunucu açılır açılmaz (`instrumentation.ts`) tüm kaynakları çekmeye başlar. Önbellek henüz boşken gelen ilk istek yavaş bir kaynağı en fazla 1,5 sn bekler; yetişemeyen kaynak `pending: true` olarak işaretlenir ve hazır olan verilerle hemen yanıt verilir. Tarayıcı bekleyen kaynak varsa 3 sn sonra tekrar sorar. Hiç başarılı olamamış ama hata veren bir kaynak istekleri bekletmez, arka planda yeniden denenir. Ölçüm (production): soğuk ilk istek ~1,7 sn, sonraki istekler ~120 ms.
-- **Harita:** Leaflet + canvas çizim (binlerce işaret akıcı), yalnızca değişen işaretler güncellenir. Altlık anahtarsız Esri koyu gri haritadır; kareler yüklenemezse otomatik olarak OpenStreetMap'e geçer.
+## Features
 
-## Kaynaklar
+- **Live map:** the browser connects to EMSC's official WebSocket service, so new earthquakes appear within seconds. The other 16 sources refresh on the server every 30–120 s.
+- **Merging:** reports of the same earthquake are merged into one record by time, distance and magnitude tolerance; regional official agencies take priority in their own region.
+- **List:** location search, source and magnitude filters, newest / strongest sorting, card layout on mobile.
+- **History:** with the optional PostgreSQL archive, map and list for ranges of up to 31 days.
+- **Two languages:** Turkish URLs have no prefix (`/liste`), English lives under `/en` (`/en/liste`). On a first visit, browsers that do not ask for Turkish are sent to English; the choice is remembered.
+- **Public API:** strict rate limits, with licence information. Details below and on the app's `/api-docs` page.
 
-| Kimlik | Kurum | Bölge | Yöntem |
+## Sources and licences
+
+Every record stays under its own source licence; this project does not relicense the data. Sources whose redistribution permission is not confirmed are shown on the website map but left out of the public API (`publicApi: false`). Once permission is granted, it is a one-line change in `src/lib/sourceInfo.ts`.
+
+| Id | Agency | Region | Method | Licence | API |
+|---|---|---|---|---|---|
+| `afad` | [AFAD Deprem Dairesi Başkanlığı](https://deprem.afad.gov.tr) | Türkiye | apiv2 JSON | [No open licence published](https://deprem.afad.gov.tr) | Permission pending |
+| `kandilli` | [Boğaziçi Üni. Kandilli Rasathanesi (KOERI)](http://www.koeri.boun.edu.tr) | Türkiye | lst0.asp plain text (no official API) | [No open licence; © KOERI](http://www.koeri.boun.edu.tr) | Permission pending |
+| `ingv` | [Istituto Nazionale di Geofisica e Vulcanologia](https://terremoti.ingv.it) | Italy | FDSN | [CC BY 4.0](https://www.ingv.it/it/note-legali) | Yes |
+| `geonet` | [GeoNet](https://www.geonet.org.nz) | New Zealand | GeoJSON API | [CC BY 3.0 NZ](https://www.geonet.org.nz/policy) | Yes |
+| `ga` | [Geoscience Australia](https://earthquakes.ga.gov.au) | Australia | WFS GeoJSON | [CC BY 4.0](https://researchdata.edu.au/earthquakesga) | Yes |
+| `jma` | [Japan Meteorological Agency](https://www.jma.go.jp) | Japan | bosai JSON | [Public Data License (Japan) 1.0, CC BY 4.0 compatible](https://www.jma.go.jp/jma/kishou/info/coment.html) | Yes |
+| `ssn` | [Servicio Sismológico Nacional](http://www.ssn.unam.mx) | Mexico | RSS | [Unverified (no licence page found)](http://www.ssn.unam.mx) | Permission pending |
+| `sed` | [Swiss Seismological Service (ETH Zürich)](http://www.seismo.ethz.ch) | Switzerland and the Alps | FDSN | [opendata.swiss: open use, source must be given](https://opendata.swiss/en/terms-of-use) | Yes |
+| `renass` | [EPOS-France / RéNaSS](https://renass.unistra.fr) | France and overseas | FDSN | [Unverified](https://renass.unistra.fr/en/legale-notice) | Permission pending |
+| `ign` | [Instituto Geográfico Nacional](https://www.ign.es/web/ign/portal/sis-catalogo-terremotos) | Spain, Morocco, Canaries | GeoRSS | [Orden FOM/2807/2015, CC BY 4.0 compatible](https://www.ign.es/web/en/politica-datos) | Yes |
+| `ipma` | [Instituto Português do Mar e da Atmosfera](https://www.ipma.pt) | Portugal, Azores | Open data JSON | [IPMA terms: non-commercial use only](https://api.ipma.pt/) | Yes |
+| `bmkg` | [Badan Meteorologi, Klimatologi, dan Geofisika](https://www.bmkg.go.id) | Indonesia | Open data JSON | [BMKG terms: written permission required to redistribute](https://www.bmkg.go.id/ketentuan-penggunaan) | Permission pending |
+| `usp` | [Centro de Sismologia da USP (RSBR)](https://www.moho.iag.usp.br) | Brazil | FDSN | [No licence published](https://www.moho.iag.usp.br) | Permission pending |
+| `noa` | [National Observatory of Athens, Geodynamics Institute](https://www.gein.noa.gr) | Greece and the Aegean | FDSN | [CC BY 4.0](https://eida.gein.noa.gr) | Yes |
+| `emsc` | [European-Mediterranean Seismological Centre](https://www.emsc-csem.org) | World | FDSN JSON + WebSocket | [CC BY 4.0 (no bulk mirroring)](https://seismicportal.eu/terms.html) | Yes |
+| `usgs` | [United States Geological Survey](https://earthquake.usgs.gov) | World | GeoJSON summary feed | [Public domain (U.S. Government)](https://www.usgs.gov/faqs/how-should-i-cite-a-usgs-website) | Yes |
+| `geofon` | [GFZ GEOFON](https://geofon.gfz.de) | World | FDSN | [CC BY 4.0](https://geofon.gfz.de/eqinfo/faq/) | Yes |
+
+Attribution texts are in `src/lib/sourceInfo.ts` and on the `/api-docs` page, and are returned in the `licenses` field of API responses.
+
+Canada (NRCan) is not included because its FDSN service applies bot protection (HTTP 403) to automated requests; Canadian earthquakes come through USGS and EMSC. Greenland (GEUS) only publishes a historical list updated on workdays, and Russia (GS RAS) has no public machine API; these regions come through USGS, EMSC and GEOFON.
+
+## API
+
+- `GET /api/earthquakes?minmag=&source=&since=&limit=` merged feed and source status
+- `GET /api/v1/{source}` raw data of a single source, `GET /api/v1/all` merged list
+- `GET /api/history?from=&to=&minmag=&source=&limit=` past earthquakes from the archive (503 when the archive is off)
+
+Every response includes `licenses` (licence and attribution of the contributing sources) and `terms`.
+
+### Limits
+
+| | Per minute | Per day | Other |
 |---|---|---|---|
-| `afad` | AFAD | Türkiye | apiv2 JSON |
-| `kandilli` | Kandilli Rasathanesi | Türkiye | Kurumun yayınladığı `lst0.asp` düz metin listesi (resmi API yok) |
-| `emsc` | EMSC | Dünya | FDSN JSON + WebSocket |
-| `usgs` | USGS | Dünya | GeoJSON özet beslemesi |
-| `geofon` | GFZ GEOFON | Dünya | FDSN |
-| `ingv` | INGV | İtalya | FDSN |
-| `sed` | ETH Zürich SED | İsviçre/Alpler | FDSN |
-| `renass` | EPOS-France RéNaSS | Fransa ve denizaşırı | FDSN |
-| `ign` | IGN | İspanya, Fas, Kanarya | GeoRSS |
-| `ipma` | IPMA | Portekiz, Azorlar | Açık veri JSON |
-| `geonet` | GeoNet | Yeni Zelanda | GeoJSON API |
-| `ga` | Geoscience Australia | Avustralya | WFS GeoJSON |
-| `jma` | JMA | Japonya | bosai JSON |
-| `bmkg` | BMKG | Endonezya | Açık veri JSON |
-| `ssn` | SSN | Meksika | RSS |
-| `usp` | USP Sismologia | Brezilya | FDSN |
-| `noa` | Atina Ulusal Gözlemevi (NOA) | Yunanistan ve Ege | FDSN |
+| `/api/earthquakes`, `/api/v1/*` | 10 | 300 | at most 500 records per response |
+| `/api/history` | 3 | 50 | range of at most 7 days, 500 records |
 
-Kanada (NRCan) FDSN servisi otomatik isteklere bot koruması (HTTP 403) uyguladığı için eklenmedi; Kanada depremleri USGS ve EMSC üzerinden gelir.
+Limits are per IP; over the limit you get `429` with `Retry-After` and `X-RateLimit-*` headers. Live responses are cached for 60 s, settled history ranges for 10 minutes. All values live in one place, `src/lib/apiPolicy.ts`. The website's own pages use separate `/api/app/*` endpoints, which can only be called from the site's pages.
 
-Değerlendirilip eklenmeyenler: Grönland (GEUS) yalnızca iş günlerinde güncellenen tarihsel bir liste yayınlıyor, Rusya (GS RAS) için herkese açık makine API'si yok. Bu bölgeler USGS, EMSC ve GEOFON üzerinden gelir.
+To protect the server further, putting free Cloudflare in front of Coolify is recommended (caching, DDoS protection, edge rate limiting).
 
-FDSN veri merkezleri listesi: https://www.fdsn.org/datacenters/
+### Terms of use
 
-## Kurulum
+1. The data may be used for non-commercial purposes only. **Commercial use is strictly prohibited.**
+2. Everyone using the data must follow each record's source licence and keep its attribution.
+3. The data is merged and processed from several sources and provided as is, without any warranty.
+4. This data is not an official earthquake warning and must not be presented as one. Follow the responsible agency for official information.
+5. Do not poll live data more often than every 60 seconds. Access is cut off without notice for clients that break these terms or limits.
 
-Node.js 22 veya üzeri gerekir (24 LTS önerilir).
+## Setup
+
+Requires Node.js 22 or later (24 LTS recommended).
 
 ```bash
 npm install
 npm run dev        # http://localhost:3000
 npm run build && npm start
 npm run typecheck
-npm test           # ayrıştırıcı, birleştirme ve filtre testleri
+npm test
 ```
 
-Ortam değişkeni veya API anahtarı gerekmez.
+No environment variables or API keys are needed. With `TEST_DATABASE_URL` set, `npm test` also runs the database test; it drops and recreates the `earthquake_reports` table, so use an empty test database.
 
-`npm test`, `TEST_DATABASE_URL` verilirse veritabanı (arşiv) testini de çalıştırır. Bu test `earthquake_reports` tablosunu silip yeniden oluşturur; boş bir test veritabanı kullanın:
+## History archive (optional)
 
-```bash
-TEST_DATABASE_URL=postgres://kullanici:sifre@localhost:5432/deprem_test npm test
-```
+When `DATABASE_URL` is set, the server writes every source's raw reports to PostgreSQL (only new or changed ones); the `earthquake_reports` table is created on first connection and reports are merged at query time. Without it the app works as before and the history endpoints return 503. The archive fills from the moment the server starts recording.
 
-## API
+### Deploying on Coolify (database created automatically)
 
-- `GET /api/earthquakes?minmag=&source=&since=&limit=` birleşik akış ve kaynak durumları
-- `GET /api/v1/{kaynak}` tek kaynağın ham verisi, `GET /api/v1/all` birleşik liste
-- `GET /api/history?from=&to=&minmag=&source=&limit=` kalıcı arşivden geçmiş depremler (arşiv etkin değilse 503)
+`docker-compose.yml` defines the app and PostgreSQL together; Coolify creates the database, its password and `DATABASE_URL` by itself.
 
-Ayrıntılar uygulamadaki `/api-docs` sayfasında. IP başına dakikada 60 istek sınırı vardır.
+1. In Coolify, **+ New > Public/Private Repository**, pick this repository, branch `main`.
+2. Choose the **Docker Compose** build pack (file: `/docker-compose.yml`).
+3. Set your domain on the `app` service; leave `db` alone.
+4. **Deploy**. Database data lives in the persistent `deprem-db` volume.
+5. Open `/gecmis` to check.
 
-## Geçmiş arşivi (isteğe bağlı)
-
-`DATABASE_URL` ortam değişkeni tanımlanırsa sunucu her kaynaktan gelen ham kayıtları PostgreSQL'e yazar (yalnızca yeni veya değişen kayıtlar). `earthquake_reports` tablosu ilk bağlantıda otomatik oluşur. Kaynakların ham kayıtları saklanır ve sorgu anında birleştirilir.
-
-`DATABASE_URL` tanımlı değilse uygulama eskisi gibi çalışır ve `/api/history` 503 döner.
-
-`/gecmis` sayfası tarih aralığı (en fazla 31 gün), büyüklük ve kaynak filtresiyle harita ve liste gösterir. Arşiv, sunucunun kayda başladığı andan itibaren dolar; daha eski depremler arşivde bulunmaz.
-
-### Coolify ile kurulum (veritabanı otomatik)
-
-Depoda uygulama ve PostgreSQL'i birlikte tanımlayan bir `docker-compose.yml` var. Coolify veritabanını, şifresini ve `DATABASE_URL`'i kendisi oluşturur:
-
-1. Coolify'da **+ New > Public/Private Repository** ile bu depoyu seçin.
-2. Build Pack olarak **Docker Compose** seçin (dosya: `/docker-compose.yml`).
-3. `app` servisine alan adınızı girin (boş bırakırsanız Coolify otomatik bir adres verir).
-4. **Deploy**. PostgreSQL ayağa kalkar, `earthquake_reports` tablosu ilk bağlantıda oluşur.
-5. `/gecmis` ve `/api/history` adreslerini açarak kontrol edin.
-
-Veritabanı verisi `deprem-db` adlı kalıcı birimde durur; yeniden dağıtımda silinmez.
-
-Mevcut bir Nixpacks kurulumuna arşiv eklemek isterseniz: ayrı bir PostgreSQL kaynağı ekleyip **Postgres URL (internal)** değerini uygulamaya `DATABASE_URL` olarak girin ve yeniden dağıtın.
-
-## Proje yapısı
+## Project structure
 
 ```
-Dockerfile                   Üretim imajı (Node 24)
-docker-compose.yml           Uygulama + PostgreSQL (Coolify)
+Dockerfile, docker-compose.yml   Production image (Node 24) and app + PostgreSQL
 src/
-  app/
-    page.tsx                 Canlı dünya haritası
-    liste/page.tsx           Filtrelenebilir liste
-    gecmis/page.tsx          Geçmiş sayfası (arşivden harita + liste)
-    api-docs/page.tsx
-    api/earthquakes/route.ts
-    api/v1/[source]/route.ts
-    api/history/route.ts     Geçmiş API'si
-  components/                LiveDashboard, LiveMap, EarthquakeTable
-  hooks/                     useEarthquakeFeed (30 sn yenileme + canlı), useEmscLive (WebSocket)
-  lib/
-    sources/parsers.ts       Her kaynağın yanıtını ortak tipe çeviren saf fonksiyonlar
-    sources/fetchers.ts      Kaynak URL'leri, zaman aşımı, TTL
-    sources/index.ts         Önbellek, ilk açılış ısıtması ve birleştirme (yalnız sunucu)
-    sourceInfo.ts            Kaynak kayıt defteri (ad, bölge, öncelik); SourceId buradan türetilir
-    merge.ts                 Kaynaklar arası tekrar birleştirme
-    filters.ts               API sorgu parametreleri (minmag, source, since, limit)
-    archive.ts               PostgreSQL arşivi (DATABASE_URL ile isteğe bağlı)
-    format.ts                Tarih, büyüklük ve harita işaret renk/boyut yardımcıları
-  instrumentation.ts         Sunucu açılışında önbelleği ısıtır
-  middleware.ts              /api hız sınırı
-tests/                       Ayrıştırıcı, birleştirme ve filtre testleri (npm test)
-  archive.test.ts            Geçmiş parametreleri; TEST_DATABASE_URL ile veritabanı testi
+  app/[lang]/                    Pages (tr without prefix, en under /en): map, list, history, api-docs, 404
+  app/api/                       Public API: earthquakes, v1/[source], history
+  app/api/app/                   The website's own endpoints (feed, history), closed to outside callers
+  components/                    LiveDashboard, LiveMap, QuakeTable, SiteHeader, shared ui pieces
+  hooks/                         useEarthquakeFeed (30 s refresh + live), useEmscLive (WebSocket)
+  i18n/                          Language config, tr/en dictionaries, I18nProvider
+  lib/sources/                   Parsers (pure), fetchers, cache and merging
+  lib/sourceInfo.ts              Source registry: name, regions, priority, licence, attribution, publicApi
+  lib/apiPolicy.ts               API rate limits, record cap, cache durations
+  lib/archive.ts                 PostgreSQL archive
+  middleware.ts                  Language routing and API rate limiting
+tests/                           Parser, merge, filter, language and archive tests
 ```
 
-## Yeni kaynak ekleme
+## Development
 
-1. `src/lib/sourceInfo.ts` içindeki `DEFINITIONS` nesnesine bir girdi ekleyin (ad, bölge, öncelik).
-2. `src/lib/sources/fetchers.ts` içindeki `FETCHERS` nesnesine çekicisini ekleyin. FDSN servisi varsa tek bir `fdsnSource(...)` çağrısı yeterli; yoksa `parsers.ts`'e saf bir ayrıştırıcı yazın.
-3. Ayrıştırıcı için `tests/parsers.test.ts`'e örnek yanıtlı bir test ekleyin ve `npm test` çalıştırın.
+**New source:** one entry in `DEFINITIONS` in `src/lib/sourceInfo.ts` (name, region names, priority, licence, attribution, `publicApi`), its fetcher in `FETCHERS` in `src/lib/sources/fetchers.ts`, and a test in `tests/parsers.test.ts`. A missing field or fetcher fails `npm run typecheck`.
 
-Harita, liste, API, kaynak paneli ve birleştirme yeni kaynağı kendiliğinden kullanır. Çekici unutulursa `npm run typecheck` hata verir. Kayıt defteri tarayıcıya da gider, çekiciler yalnızca sunucuda kalır; iki dosya olmasının nedeni bu.
+**New language:** add the code to `LOCALES` in `src/i18n/config.ts`, a dictionary under `src/i18n/dictionaries/`, and the region names of the sources. A missing translation fails the build.
 
-Harita altlığı: © Esri (Esri, HERE, Garmin), © OpenStreetMap katkıcıları.
+## Licence
 
-## Lisans
-
-MIT
+The code is MIT licensed. The earthquake data is not covered by this licence; every record stays under its own source licence (table above).

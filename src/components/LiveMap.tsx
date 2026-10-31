@@ -4,8 +4,10 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Earthquake } from '@/types';
-import { SOURCES } from '@/lib/sourceInfo';
-import { formatDateTime, formatDepth, formatMagnitude, magnitudeColor, magnitudeRadius } from '@/lib/format';
+import { SOURCES, reporterNames } from '@/lib/sourceInfo';
+import { formatDepth, formatMagnitude, magnitudeColor, magnitudeRadius, type Formatters } from '@/lib/format';
+import type { Dictionary } from '@/i18n';
+import { useI18n } from '@/i18n/I18nProvider';
 
 interface Props {
   earthquakes: Earthquake[];
@@ -27,7 +29,7 @@ function opacityFor(time: string, now: number): number {
 }
 
 /** Popup içeriği DOM API ile kuruluyor; dış kaynaktan gelen metin asla HTML olarak yorumlanmaz */
-function buildPopup(eq: Earthquake): HTMLElement {
+function buildPopup(eq: Earthquake, t: Dictionary, fmt: Formatters): HTMLElement {
   const root = document.createElement('div');
   root.className = 'eq-popup';
 
@@ -38,19 +40,16 @@ function buildPopup(eq: Earthquake): HTMLElement {
   mag.style.background = magnitudeColor(eq.magnitude);
   mag.textContent = formatMagnitude(eq.magnitude);
   const place = document.createElement('strong');
-  place.textContent = eq.location || 'Konum belirtilmemiş';
+  place.textContent = eq.location || t.common.unknownLocation;
   head.append(mag, place);
   root.append(head);
 
   const rows: [string, string][] = [
-    ['Zaman', formatDateTime(eq.time)],
-    ['Derinlik', formatDepth(eq.depth)],
-    ['Koordinat', `${eq.latitude.toFixed(3)}, ${eq.longitude.toFixed(3)}`],
-    ['Büyüklük tipi', eq.magType ?? '-'],
-    [
-      'Kaynak',
-      [eq.source, ...(eq.alsoReportedBy ?? [])].map((s) => SOURCES[s]?.name ?? s).join(', '),
-    ],
+    [t.common.time, fmt.dateTime(eq.time)],
+    [t.common.depth, formatDepth(eq.depth)],
+    [t.map.coordinates, `${eq.latitude.toFixed(3)}, ${eq.longitude.toFixed(3)}`],
+    [t.map.magType, eq.magType ?? '-'],
+    [t.common.source, reporterNames(eq)],
   ];
   const dl = document.createElement('dl');
   for (const [k, v] of rows) {
@@ -67,7 +66,7 @@ function buildPopup(eq: Earthquake): HTMLElement {
     a.href = eq.url;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    a.textContent = `${SOURCES[eq.source]?.name ?? eq.source} sayfasında aç →`;
+    a.textContent = t.map.openAt(SOURCES[eq.source]?.name ?? eq.source);
     root.append(a);
   }
   return root;
@@ -102,6 +101,10 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
   const skipFly = useRef(false);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  // Popup her açılışta kurulur; dil değişse de güncel sözlüğü kullansın
+  const { t, fmt } = useI18n();
+  const i18nRef = useRef({ t, fmt });
+  i18nRef.current = { t, fmt };
 
   // Haritayı bir kez kur
   useEffect(() => {
@@ -115,12 +118,14 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
       zoomControl: false,
       // Kare geçiş animasyonu her karede tüm karelerin saydamlığını günceller; mobilde zoom'u takıldırıyordu
       fadeAnimation: false,
+      attributionControl: false,
     });
+    L.control.attribution({ prefix: false, position: 'bottomright' }).addTo(map);
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
     // Anahtar gerektirmeyen koyu altlık (Esri). Ulaşılamazsa OpenStreetMap'e düşer.
     // Zoom sırasında ara seviyelerin karelerini indirme; zoom bitince tek seferde yükle
     const tileOptions: L.TileLayerOptions = { maxZoom: 16, updateWhenZooming: false, keepBuffer: 1 };
-    const esriAttribution = 'Tiles &copy; <a href="https://www.esri.com">Esri</a> &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors';
+    const esriAttribution = '&copy; <a href="https://www.esri.com">Esri</a>, HERE, Garmin, &copy; OpenStreetMap';
     const base = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
       { ...tileOptions, attribution: esriAttribution },
@@ -217,7 +222,7 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
             opacity: style.fillOpacity!,
           };
           entry.marker
-            .bindPopup(() => buildPopup(entry.eq), { maxWidth: 320, className: 'eq-leaflet-popup' })
+            .bindPopup(() => buildPopup(entry.eq, i18nRef.current.t, i18nRef.current.fmt), { maxWidth: 320, className: 'eq-leaflet-popup' })
             .on('click', (e) => {
               L.DomEvent.stopPropagation(e);
               skipFly.current = true;
@@ -287,5 +292,5 @@ export default function LiveMap({ earthquakes, arrivals, selectedId, onSelect }:
     entry.marker.openPopup();
   }, [selectedId]);
 
-  return <div ref={containerRef} className="h-full w-full bg-slate-950" aria-label="Deprem haritası" />;
+  return <div ref={containerRef} className="h-full w-full bg-slate-950" aria-label={t.map.ariaLabel} />;
 }

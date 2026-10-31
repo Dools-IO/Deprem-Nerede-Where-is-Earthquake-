@@ -47,7 +47,14 @@ async function migrate(db: postgres.Sql): Promise<void> {
 async function getDb(): Promise<postgres.Sql | null> {
   if (!DATABASE_URL) return null;
   if (!sql) {
-    sql = postgres(DATABASE_URL, { max: 5, idle_timeout: 60, connect_timeout: 10, onnotice: () => {} });
+    sql = postgres(DATABASE_URL, {
+      max: 5,
+      idle_timeout: 60,
+      connect_timeout: 10,
+      onnotice: () => {},
+      // Ağır bir sorgu sunucuyu kilitlemesin
+      connection: { statement_timeout: 5000 },
+    });
   }
   if (!ready) {
     ready = migrate(sql).catch((err) => {
@@ -125,6 +132,8 @@ export interface HistoryQuery {
   to: Date;
   minMagnitude?: number;
   sources?: SourceId[];
+  /** Yalnız bu kaynakların ham kayıtları birleştirilir (herkese açık API için) */
+  onlySources?: readonly SourceId[];
   limit: number;
 }
 
@@ -168,6 +177,7 @@ export async function queryHistory(q: HistoryQuery): Promise<HistoryResult> {
     FROM earthquake_reports
     WHERE time >= ${q.from} AND time < ${q.to}
       ${q.minMagnitude !== undefined ? db`AND magnitude >= ${q.minMagnitude}` : db``}
+      ${q.onlySources ? db`AND source = ANY(${[...q.onlySources]})` : db``}
     ORDER BY time DESC
     LIMIT ${MAX_ROWS}`;
   let merged = mergeEarthquakes(rows.map(rowToEarthquake));

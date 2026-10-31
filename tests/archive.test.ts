@@ -57,6 +57,11 @@ test('arşiv: yazma, tekrar yazmama, birleştirerek okuma', { skip: !DB && 'TEST
   const big = await queryHistory({ from: new Date('2026-10-30T00:00:00Z'), to: new Date('2026-10-31T00:00:00Z'), minMagnitude: 5, limit: 100 });
   assert.deepEqual(big.earthquakes.map((e) => e.id), ['usgs:far']);
 
+  // Herkese açık API: yalnız izinli kaynakların ham kayıtları birleştirilir
+  const pub = await queryHistory({ from: new Date('2026-10-30T00:00:00Z'), to: new Date('2026-10-31T00:00:00Z'), onlySources: ['emsc', 'usgs'], limit: 100 });
+  assert.deepEqual(pub.earthquakes.map((e) => e.id).sort(), ['emsc:1', 'usgs:far']);
+  assert.equal(pub.earthquakes.find((e) => e.id === 'emsc:1')!.alsoReportedBy, undefined);
+
   await sql`DROP TABLE earthquake_reports`;
   await sql.end();
   await closeArchive();
