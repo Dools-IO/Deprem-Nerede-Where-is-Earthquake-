@@ -1,20 +1,6 @@
-export type SourceId =
-  | 'afad'
-  | 'kandilli'
-  | 'emsc'
-  | 'usgs'
-  | 'ingv'
-  | 'geonet'
-  | 'ga'
-  | 'jma'
-  | 'ssn'
-  | 'geofon'
-  | 'sed'
-  | 'renass'
-  | 'ign'
-  | 'ipma'
-  | 'bmkg'
-  | 'usp';
+import type { SourceId } from '../lib/sourceInfo';
+
+export type { SourceId };
 
 export interface Earthquake {
   /** Kaynağa göre sabit kimlik, ör. "usgs:us7000abcd" */

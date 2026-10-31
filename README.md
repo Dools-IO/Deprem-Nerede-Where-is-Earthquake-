@@ -34,8 +34,9 @@ Veriler yalnızca kurumların resmi API'lerinden ve kendi yayınladıkları besl
 
 Kanada (NRCan) FDSN servisi otomatik isteklere bot koruması (HTTP 403) uyguladığı için eklenmedi; Kanada depremleri USGS ve EMSC üzerinden gelir.
 
-Yeni bir FDSN servisi eklemek için `src/lib/sources/fetchers.ts` içinde `fdsnSource(...)` satırı ve
-`src/lib/sourceInfo.ts` içinde bir kayıt yeterlidir. FDSN kayıt listesi: https://www.fdsn.org/datacenters/
+Değerlendirilip eklenmeyenler: Grönland (GEUS) yalnızca iş günlerinde güncellenen tarihsel bir liste yayınlıyor, Rusya (GS RAS) için herkese açık makine API'si yok. Bu bölgeler USGS, EMSC ve GEOFON üzerinden gelir.
+
+FDSN veri merkezleri listesi: https://www.fdsn.org/datacenters/
 
 ## Kurulum
 
@@ -46,6 +47,7 @@ npm install
 npm run dev        # http://localhost:3000
 npm run build && npm start
 npm run typecheck
+npm test           # ayrıştırıcı, birleştirme ve filtre testleri
 ```
 
 Ortam değişkeni veya API anahtarı gerekmez.
@@ -73,13 +75,22 @@ src/
     sources/parsers.ts       Her kaynağın yanıtını ortak tipe çeviren saf fonksiyonlar
     sources/fetchers.ts      Kaynak URL'leri, zaman aşımı, TTL
     sources/index.ts         Önbellek, ilk açılış ısıtması ve birleştirme (yalnız sunucu)
-    sourceInfo.ts            Kaynak adları, bölgeleri ve birleştirme öncelikleri
+    sourceInfo.ts            Kaynak kayıt defteri (ad, bölge, öncelik); SourceId buradan türetilir
     merge.ts                 Kaynaklar arası tekrar birleştirme
     filters.ts               API sorgu parametreleri (minmag, source, since, limit)
     format.ts                Tarih, büyüklük ve harita işaret renk/boyut yardımcıları
   instrumentation.ts         Sunucu açılışında önbelleği ısıtır
   middleware.ts              /api hız sınırı
+tests/                       Ayrıştırıcı, birleştirme ve filtre testleri (npm test)
 ```
+
+## Yeni kaynak ekleme
+
+1. `src/lib/sourceInfo.ts` içindeki `DEFINITIONS` nesnesine bir girdi ekleyin (ad, bölge, öncelik).
+2. `src/lib/sources/fetchers.ts` içindeki `FETCHERS` nesnesine çekicisini ekleyin. FDSN servisi varsa tek bir `fdsnSource(...)` çağrısı yeterli; yoksa `parsers.ts`'e saf bir ayrıştırıcı yazın.
+3. Ayrıştırıcı için `tests/parsers.test.ts`'e örnek yanıtlı bir test ekleyin ve `npm test` çalıştırın.
+
+Harita, liste, API, kaynak paneli ve birleştirme yeni kaynağı kendiliğinden kullanır. Çekici unutulursa `npm run typecheck` hata verir. Kayıt defteri tarayıcıya da gider, çekiciler yalnızca sunucuda kalır; iki dosya olmasının nedeni bu.
 
 Harita altlığı: © Esri (Esri, HERE, Garmin), © OpenStreetMap katkıcıları.
 

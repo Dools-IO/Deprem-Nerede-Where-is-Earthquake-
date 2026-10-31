@@ -1,7 +1,11 @@
-import type { SourceId } from '../types';
+/*
+ * Kaynak kayıt defteri (istemci ve sunucu ortak).
+ * SourceId tipi bu nesnenin anahtarlarından türetilir; yeni bir kaynak için
+ * buraya bir girdi ekleyip sunucu tarafında FETCHERS'a çekicisini yazmak yeterli.
+ * FETCHERS `Record<SourceId, …>` olduğundan çekicisi unutulursa derleme hata verir.
+ */
 
-export interface SourceInfo {
-  id: SourceId;
+interface SourceDefinition {
   name: string;
   fullName: string;
   region: string;
@@ -12,9 +16,8 @@ export interface SourceInfo {
 
 // Bölgesel resmi kurumlar, kendi bölgelerinde küresel kataloglardan daha
 // isabetli konum/büyüklük verir; bu yüzden birleştirmede önce gelirler.
-export const SOURCES: Record<SourceId, SourceInfo> = {
+const DEFINITIONS = {
   afad: {
-    id: 'afad',
     name: 'AFAD',
     fullName: 'AFAD Deprem Dairesi Başkanlığı',
     region: 'Türkiye',
@@ -22,7 +25,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 1,
   },
   kandilli: {
-    id: 'kandilli',
     name: 'Kandilli',
     fullName: 'Boğaziçi Üni. Kandilli Rasathanesi (KOERI)',
     region: 'Türkiye',
@@ -30,7 +32,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 2,
   },
   ingv: {
-    id: 'ingv',
     name: 'INGV',
     fullName: 'Istituto Nazionale di Geofisica e Vulcanologia',
     region: 'İtalya',
@@ -38,7 +39,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 3,
   },
   geonet: {
-    id: 'geonet',
     name: 'GeoNet',
     fullName: 'GeoNet',
     region: 'Yeni Zelanda',
@@ -46,7 +46,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 3,
   },
   ga: {
-    id: 'ga',
     name: 'GA',
     fullName: 'Geoscience Australia',
     region: 'Avustralya',
@@ -54,7 +53,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 3,
   },
   jma: {
-    id: 'jma',
     name: 'JMA',
     fullName: 'Japan Meteorological Agency',
     region: 'Japonya',
@@ -62,7 +60,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 3,
   },
   ssn: {
-    id: 'ssn',
     name: 'SSN',
     fullName: 'Servicio Sismológico Nacional',
     region: 'Meksika',
@@ -70,7 +67,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 3,
   },
   sed: {
-    id: 'sed',
     name: 'SED',
     fullName: 'Swiss Seismological Service (ETH Zürich)',
     region: 'İsviçre ve Alpler',
@@ -78,7 +74,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 3,
   },
   renass: {
-    id: 'renass',
     name: 'RéNaSS',
     fullName: 'EPOS-France / RéNaSS',
     region: 'Fransa ve denizaşırı bölgeler',
@@ -86,7 +81,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 3,
   },
   ign: {
-    id: 'ign',
     name: 'IGN',
     fullName: 'Instituto Geográfico Nacional',
     region: 'İspanya, Fas, Kanarya',
@@ -94,7 +88,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 3,
   },
   ipma: {
-    id: 'ipma',
     name: 'IPMA',
     fullName: 'Instituto Português do Mar e da Atmosfera',
     region: 'Portekiz, Azorlar',
@@ -102,7 +95,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 3,
   },
   bmkg: {
-    id: 'bmkg',
     name: 'BMKG',
     fullName: 'Badan Meteorologi, Klimatologi, dan Geofisika',
     region: 'Endonezya',
@@ -110,7 +102,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 3,
   },
   usp: {
-    id: 'usp',
     name: 'USP',
     fullName: 'Centro de Sismologia da USP (RSBR)',
     region: 'Brezilya',
@@ -118,7 +109,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 3,
   },
   emsc: {
-    id: 'emsc',
     name: 'EMSC',
     fullName: 'European-Mediterranean Seismological Centre',
     region: 'Dünya',
@@ -126,7 +116,6 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 5,
   },
   usgs: {
-    id: 'usgs',
     name: 'USGS',
     fullName: 'United States Geological Survey',
     region: 'Dünya',
@@ -134,17 +123,26 @@ export const SOURCES: Record<SourceId, SourceInfo> = {
     priority: 6,
   },
   geofon: {
-    id: 'geofon',
     name: 'GEOFON',
     fullName: 'GFZ GEOFON',
     region: 'Dünya',
     homepage: 'https://geofon.gfz.de',
     priority: 7,
   },
-};
+} satisfies Record<string, SourceDefinition>;
 
-export const SOURCE_IDS = Object.keys(SOURCES) as SourceId[];
+export type SourceId = keyof typeof DEFINITIONS;
+
+export interface SourceInfo extends SourceDefinition {
+  id: SourceId;
+}
+
+export const SOURCE_IDS = Object.keys(DEFINITIONS) as SourceId[];
+
+export const SOURCES = Object.fromEntries(
+  SOURCE_IDS.map((id) => [id, { id, ...DEFINITIONS[id] }]),
+) as Record<SourceId, SourceInfo>;
 
 export function isSourceId(value: string): value is SourceId {
-  return value in SOURCES;
+  return Object.prototype.hasOwnProperty.call(DEFINITIONS, value);
 }
