@@ -1,32 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, localePath, preferredLocale } from '@/i18n/config';
-import { RATE_LIMITS, type RateRule } from '@/lib/apiPolicy';
+import { checkAccess, clientIp, type RuleName } from '@/lib/accessControl';
 
 /*
- * Örnek başına (in-memory) hız sınırı. Tek sunucuda iş görür; birden çok örnek
- * çalıştırılırsa sayaç Redis gibi ortak bir depoya taşınmalı. Asıl koruma yine önbellek:
- * dış kaynaklara istek sayısı kullanıcı sayısından bağımsız.
+ * Hız sınırı ve ban/izin kuralları lib/accessControl'da; middleware Node çalışma
+ * ortamında koşar ki admin uçları aynı sayaçları görebilsin.
  */
-const MINUTE = 60_000;
-const DAY = 24 * 60 * MINUTE;
-
-interface Bucket {
-  minuteCount: number;
-  minuteReset: number;
-  dayCount: number;
-  dayReset: number;
-}
-const buckets = new Map<string, Bucket>();
-
-function clientIp(req: NextRequest): string {
-  // Barındırma platformunun eklediği başlıkları kullan; ilk değer istemci IP'sidir
-  return (
-    req.headers.get('x-real-ip') ??
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    'unknown'
-  );
-}
 
 /** İstek sitenin kendi sayfasından mı? Eski tarayıcılar Sec-Fetch-Site göndermez; o zaman Referer'a bakılır */
 function fromOwnSite(req: NextRequest): boolean {
@@ -41,11 +21,11 @@ function fromOwnSite(req: NextRequest): boolean {
 }
 
 /** Hangi kural: sitenin kendi uçları mı, herkese açık API mi, geçmiş mi */
-function ruleFor(pathname: string): { name: keyof typeof RATE_LIMITS; rule: RateRule } {
+function scopeFor(pathname: string): RuleName {
+  if (pathname.startsWith('/api/admin/')) return 'admin';
   const app = pathname.startsWith('/api/app/');
   const history = pathname.endsWith('/history');
-  const name = app ? (history ? 'appHistory' : 'app') : history ? 'publicHistory' : 'public';
-  return { name, rule: RATE_LIMITS[name] };
+  return app ? (history ? 'appHistory' : 'app') : history ? 'publicHistory' : 'public';
 }
 
 /*
@@ -92,69 +72,41 @@ function rateLimit(req: NextRequest) {
     );
   }
 
-  const now = Date.now();
-  const { name, rule } = ruleFor(pathname);
-  const key = `${name}:${clientIp(req)}`;
+  // Sunucu sağlık kontrolü sayılmaz
+  if (pathname === '/api/health') return NextResponse.next();
 
-  if (buckets.size > 20_000) {
-    for (const [k, v] of buckets) if (v.dayReset < now && v.minuteReset < now) buckets.delete(k);
-  }
-  let b = buckets.get(key);
-  if (!b) {
-    b = { minuteCount: 0, minuteReset: now + MINUTE, dayCount: 0, dayReset: now + DAY };
-    buckets.set(key, b);
-  }
-  if (b.minuteReset < now) {
-    b.minuteCount = 0;
-    b.minuteReset = now + MINUTE;
-  }
-  if (b.dayReset < now) {
-    b.dayCount = 0;
-    b.dayReset = now + DAY;
-  }
-  b.minuteCount++;
-  b.dayCount++;
+  const ip = clientIp(req.headers);
+  const scope = scopeFor(pathname);
+  const d = checkAccess(ip, scope, pathname);
 
-  const overDay = rule.perDay !== undefined && b.dayCount > rule.perDay;
-  const overMinute = b.minuteCount > rule.perMinute;
-  const limit = overDay ? rule.perDay! : rule.perMinute;
-  const reset = overDay ? b.dayReset : b.minuteReset;
-  const remaining = overDay ? 0 : Math.max(0, rule.perMinute - b.minuteCount);
-  const headers: Record<string, string> = {
-    'X-RateLimit-Limit': String(limit),
-    'X-RateLimit-Remaining': String(remaining),
-    'X-RateLimit-Reset': new Date(reset).toISOString(),
-  };
-  if (rule.perDay !== undefined) {
-    headers['X-RateLimit-Daily-Limit'] = String(rule.perDay);
-    headers['X-RateLimit-Daily-Remaining'] = String(Math.max(0, rule.perDay - b.dayCount));
+  if (d.action === 'ban') {
+    return NextResponse.json(
+      { success: false, error: 'Access blocked. / Erişim engellendi.' },
+      { status: 403, headers: { 'Cache-Control': 'no-store' } },
+    );
   }
-
-  if (overDay || overMinute) {
+  if (d.action === 'limit') {
     // İlk aşımda bir kez logla; kimin zorladığı görülsün, log dolmasın
-    if (b.minuteCount === rule.perMinute + 1 || b.dayCount === (rule.perDay ?? -1) + 1) {
-      console.warn(`[hız sınırı] ${key} ${overDay ? 'günlük' : 'dakikalık'} sınırı aştı`);
-    }
+    if (d.firstRejection) console.warn(`[hız sınırı] ${scope}:${ip} ${d.daily ? 'günlük' : 'dakikalık'} sınırı aştı`);
     return NextResponse.json(
       {
         success: false,
-        error: overDay
+        error: d.daily
           ? 'Daily request limit reached. / Günlük istek sınırı doldu.'
           : 'Too many requests, please wait a minute. / Çok fazla istek, lütfen bir dakika bekleyin.',
       },
-      {
-        status: 429,
-        headers: { ...headers, 'Retry-After': String(Math.ceil((reset - now) / 1000)), 'Cache-Control': 'no-store' },
-      },
+      { status: 429, headers: { ...d.headers, 'Retry-After': String(d.retryAfter), 'Cache-Control': 'no-store' } },
     );
   }
 
   const res = NextResponse.next();
-  for (const [k, v] of Object.entries(headers)) res.headers.set(k, v);
+  for (const [k, v] of Object.entries(d.headers)) res.headers.set(k, v);
   return res;
 }
 
 export const config = {
+  // Node ortamı: sayaçlar admin uçlarıyla aynı süreçte paylaşılır
+  runtime: 'nodejs',
   // API'ler ve sayfalar; Next iç dosyaları ve uzantılı statik dosyalar (resim, favicon) hariç
   matcher: ['/api/:path*', '/((?!_next/|.*\\..*).*)'],
 };

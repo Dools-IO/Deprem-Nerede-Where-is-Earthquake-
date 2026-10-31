@@ -17,6 +17,8 @@ export const RATE_LIMITS = {
   /** Sitenin kendi sayfaları (/api/app/*): aynı ağdaki birçok ziyaretçiyi kaldıracak kadar geniş */
   app: { perMinute: 60 },
   appHistory: { perMinute: 20 },
+  /** /api/admin/*: şifre denemesini yavaşlatmak için */
+  admin: { perMinute: 20 },
 } satisfies Record<string, RateRule>;
 
 /** Dış istemcinin tek yanıtta alabileceği en fazla kayıt */

@@ -42,9 +42,18 @@ async function migrate(db: postgres.Sql): Promise<void> {
       updated_at  timestamptz NOT NULL DEFAULT now()
     )`;
   await db`CREATE INDEX IF NOT EXISTS earthquake_reports_time_idx ON earthquake_reports (time DESC)`;
+  // Admin panelinden eklenen kalıcı ban / beyaz liste kuralları
+  await db`
+    CREATE TABLE IF NOT EXISTS api_access_rules (
+      ip          text PRIMARY KEY,
+      kind        text NOT NULL CHECK (kind IN ('ban', 'allow')),
+      note        text NOT NULL DEFAULT '',
+      created_at  timestamptz NOT NULL DEFAULT now()
+    )`;
 }
 
-async function getDb(): Promise<postgres.Sql | null> {
+/** Paylaşılan bağlantı (arşiv ve erişim kuralları); DATABASE_URL yoksa null */
+export async function getDb(): Promise<postgres.Sql | null> {
   if (!DATABASE_URL) return null;
   if (!sql) {
     sql = postgres(DATABASE_URL, {

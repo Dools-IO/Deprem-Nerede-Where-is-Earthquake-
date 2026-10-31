@@ -7,12 +7,14 @@ services:
     restart: unless-stopped
     environment:
       - SERVICE_FQDN_APP_3000
+      # Admin paneli (/admin) şifresi: Coolify 64 karakterlik rastgele değer üretir, Environment Variables sekmesinde görünür
+      - ADMIN_TOKEN=${SERVICE_PASSWORD_64_ADMIN}
       - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@db:5432/deprem
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/earthquakes?limit=1 > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
