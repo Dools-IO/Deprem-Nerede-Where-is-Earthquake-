@@ -191,7 +191,8 @@ export function parseGA(json: any): Earthquake[] {
     const p = f?.properties;
     const c = f?.geometry?.coordinates;
     if (!p || !Array.isArray(c) || p.preferred_magnitude == null) continue;
-    const time = new Date(p.epicentral_time ?? p.origin_time);
+    // epicentral_time merkezdeki yerel saat ama "Z" ile UTC gibi etiketli; gerçek UTC origin_time.
+    const time = new Date(p.origin_time ?? p.epicentral_time);
     if (!validDate(time)) continue;
     const id = String(p.event_id ?? f.id ?? time.getTime());
     out.push(
