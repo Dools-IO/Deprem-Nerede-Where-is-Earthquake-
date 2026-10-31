@@ -3,6 +3,7 @@ import type { Earthquake, EarthquakeFeed, SourceId, SourceStatus } from '@/types
 import { isValidEarthquake, mergeEarthquakes } from '@/lib/merge';
 import { SOURCES, SOURCE_IDS } from '@/lib/sourceInfo';
 import { FETCHERS, WINDOW_HOURS } from './fetchers';
+import { saveReports } from '@/lib/archive';
 
 /*
  * Sunucu tarafı önbellek.
@@ -36,6 +37,8 @@ function refresh(id: SourceId, entry: Entry): Promise<void> {
       entry.data = data.filter(isValidEarthquake);
       entry.updatedAt = Date.now();
       entry.error = undefined;
+      // Kalıcı arşive arka planda yaz (DATABASE_URL yoksa hiçbir şey yapmaz)
+      void saveReports(id, entry.data);
     })
     .catch((err: unknown) => {
       entry.error = err instanceof Error ? err.message : 'Bilinmeyen hata';

@@ -67,6 +67,17 @@ GET /api/earthquakes?minmag=4&source=afad,kandilli&since=2026-10-30T12:00:00Z&li
 { "success": true, "source": "usgs", "count": 312, "lastUpdated": "...", "data": [ ... ] }
 `}</Code>
 
+      <h2 className="mb-2 mt-8 text-2xl font-semibold text-white">GET /api/history</h2>
+      <p className="mb-3">
+        Kalıcı arşivden geçmiş depremler (sunucuda <code>DATABASE_URL</code> tanımlıysa; değilse 503). Kaynakların ham
+        kayıtları sorgu anında birleştirilir. Parametreler: <code>from</code>, <code>to</code> (ISO 8601, varsayılan son 24
+        saat, en fazla 31 gün), <code>minmag</code>, <code>source</code>, <code>limit</code> (varsayılan 2000).
+      </p>
+      <Code>{`
+GET /api/history?from=2026-10-01&to=2026-10-08&minmag=4
+{ "from": "...", "to": "...", "count": 812, "truncated": false, "earthquakes": [ ... ] }
+`}</Code>
+
       <h2 className="mb-2 mt-8 text-2xl font-semibold text-white">Kaynaklar</h2>
       <table className="w-full text-sm">
         <thead className="text-left text-slate-400">

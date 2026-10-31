@@ -54,3 +54,43 @@ export function applyFilter(list: Earthquake[], f: FeedFilter): Earthquake[] {
   if (f.limit !== undefined) out = out.slice(0, f.limit);
   return out;
 }
+
+export interface HistoryParams {
+  from: Date;
+  to: Date;
+  minMagnitude?: number;
+  sources?: SourceId[];
+  limit: number;
+}
+
+const DAY_MS = 86_400_000;
+
+/**
+ * /api/history parametreleri. `from`/`to` ISO 8601 (yalnız tarih de olur: 2026-10-01).
+ * Varsayılan: son 24 saat. Aralık en fazla `maxDays` gün.
+ */
+export function parseHistoryParams(
+  params: URLSearchParams,
+  now: number,
+  maxDays: number,
+): HistoryParams | { error: string } {
+  const base = parseFilter(params);
+  if ('error' in base) return base;
+
+  const toRaw = params.get('to');
+  const fromRaw = params.get('from');
+  const to = toRaw ? Date.parse(toRaw) : now;
+  if (!Number.isFinite(to)) return { error: 'to ISO 8601 tarih olmalı' };
+  const from = fromRaw ? Date.parse(fromRaw) : to - DAY_MS;
+  if (!Number.isFinite(from)) return { error: 'from ISO 8601 tarih olmalı' };
+  if (from >= to) return { error: 'from, to tarihinden önce olmalı' };
+  if (to - from > maxDays * DAY_MS) return { error: `Aralık en fazla ${maxDays} gün olabilir` };
+
+  return {
+    from: new Date(from),
+    to: new Date(to),
+    ...(base.minMagnitude !== undefined ? { minMagnitude: base.minMagnitude } : {}),
+    ...(base.sources ? { sources: base.sources } : {}),
+    limit: base.limit ?? 2000,
+  };
+}
