@@ -5,6 +5,7 @@ import {
   parseBMKG,
   parseEMSC,
   parseFdsnText,
+  parseGA,
   parseIGN,
   parseIPMA,
   parseJMA,
@@ -142,4 +143,24 @@ test('BMKG: tekil nesne de dizi gibi işlenir', () => {
   });
   assert.equal(out.length, 1);
   assert.deepEqual([out[0].latitude, out[0].longitude, out[0].depth, out[0].magnitude], [-4.4, 132.49, 10, 5.3]);
+});
+
+test('GA: origin_time (UTC) kullanılır, yerel saatli epicentral_time değil', () => {
+  const out = parseGA({
+    features: [
+      {
+        geometry: { coordinates: [168.5, -17.7] },
+        properties: {
+          event_id: 'ga2026vanuatu',
+          origin_time: '2026-10-31T11:31:15.963Z',
+          epicentral_time: '2026-10-31T22:31:15.963Z',
+          preferred_magnitude: 5.1384,
+          depth: 31.2,
+          description: 'Offshore Vanuatu',
+        },
+      },
+    ],
+  });
+  assert.equal(out.length, 1);
+  assert.equal(out[0].time, '2026-10-31T11:31:15.963Z');
 });
