@@ -19,6 +19,7 @@ export const viewport: Viewport = {
 const NAV = [
   { href: '/', label: 'Harita' },
   { href: '/liste', label: 'Liste' },
+  { href: '/gecmis', label: 'Geçmiş' },
   { href: '/api-docs', label: 'API' },
 ];
 

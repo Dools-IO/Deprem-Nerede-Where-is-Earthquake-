@@ -41,7 +41,7 @@ FDSN veri merkezleri listesi: https://www.fdsn.org/datacenters/
 
 ## Kurulum
 
-Node.js 18.18 veya üzeri gerekir (20+ önerilir).
+Node.js 22 veya üzeri gerekir (24 LTS önerilir).
 
 ```bash
 npm install
@@ -53,23 +53,56 @@ npm test           # ayrıştırıcı, birleştirme ve filtre testleri
 
 Ortam değişkeni veya API anahtarı gerekmez.
 
+`npm test`, `TEST_DATABASE_URL` verilirse veritabanı (arşiv) testini de çalıştırır. Bu test `earthquake_reports` tablosunu silip yeniden oluşturur; boş bir test veritabanı kullanın:
+
+```bash
+TEST_DATABASE_URL=postgres://kullanici:sifre@localhost:5432/deprem_test npm test
+```
+
 ## API
 
 - `GET /api/earthquakes?minmag=&source=&since=&limit=` birleşik akış ve kaynak durumları
 - `GET /api/v1/{kaynak}` tek kaynağın ham verisi, `GET /api/v1/all` birleşik liste
+- `GET /api/history?from=&to=&minmag=&source=&limit=` kalıcı arşivden geçmiş depremler (arşiv etkin değilse 503)
 
 Ayrıntılar uygulamadaki `/api-docs` sayfasında. IP başına dakikada 60 istek sınırı vardır.
+
+## Geçmiş arşivi (isteğe bağlı)
+
+`DATABASE_URL` ortam değişkeni tanımlanırsa sunucu her kaynaktan gelen ham kayıtları PostgreSQL'e yazar (yalnızca yeni veya değişen kayıtlar). `earthquake_reports` tablosu ilk bağlantıda otomatik oluşur. Kaynakların ham kayıtları saklanır ve sorgu anında birleştirilir.
+
+`DATABASE_URL` tanımlı değilse uygulama eskisi gibi çalışır ve `/api/history` 503 döner.
+
+`/gecmis` sayfası tarih aralığı (en fazla 31 gün), büyüklük ve kaynak filtresiyle harita ve liste gösterir. Arşiv, sunucunun kayda başladığı andan itibaren dolar; daha eski depremler arşivde bulunmaz.
+
+### Coolify ile kurulum (veritabanı otomatik)
+
+Depoda uygulama ve PostgreSQL'i birlikte tanımlayan bir `docker-compose.yml` var. Coolify veritabanını, şifresini ve `DATABASE_URL`'i kendisi oluşturur:
+
+1. Coolify'da **+ New > Public/Private Repository** ile bu depoyu seçin.
+2. Build Pack olarak **Docker Compose** seçin (dosya: `/docker-compose.yml`).
+3. `app` servisine alan adınızı girin (boş bırakırsanız Coolify otomatik bir adres verir).
+4. **Deploy**. PostgreSQL ayağa kalkar, `earthquake_reports` tablosu ilk bağlantıda oluşur.
+5. `/gecmis` ve `/api/history` adreslerini açarak kontrol edin.
+
+Veritabanı verisi `deprem-db` adlı kalıcı birimde durur; yeniden dağıtımda silinmez.
+
+Mevcut bir Nixpacks kurulumuna arşiv eklemek isterseniz: ayrı bir PostgreSQL kaynağı ekleyip **Postgres URL (internal)** değerini uygulamaya `DATABASE_URL` olarak girin ve yeniden dağıtın.
 
 ## Proje yapısı
 
 ```
+Dockerfile                   Üretim imajı (Node 24)
+docker-compose.yml           Uygulama + PostgreSQL (Coolify)
 src/
   app/
     page.tsx                 Canlı dünya haritası
     liste/page.tsx           Filtrelenebilir liste
+    gecmis/page.tsx          Geçmiş sayfası (arşivden harita + liste)
     api-docs/page.tsx
     api/earthquakes/route.ts
     api/v1/[source]/route.ts
+    api/history/route.ts     Geçmiş API'si
   components/                LiveDashboard, LiveMap, EarthquakeTable
   hooks/                     useEarthquakeFeed (30 sn yenileme + canlı), useEmscLive (WebSocket)
   lib/
@@ -79,10 +112,12 @@ src/
     sourceInfo.ts            Kaynak kayıt defteri (ad, bölge, öncelik); SourceId buradan türetilir
     merge.ts                 Kaynaklar arası tekrar birleştirme
     filters.ts               API sorgu parametreleri (minmag, source, since, limit)
+    archive.ts               PostgreSQL arşivi (DATABASE_URL ile isteğe bağlı)
     format.ts                Tarih, büyüklük ve harita işaret renk/boyut yardımcıları
   instrumentation.ts         Sunucu açılışında önbelleği ısıtır
   middleware.ts              /api hız sınırı
 tests/                       Ayrıştırıcı, birleştirme ve filtre testleri (npm test)
+  archive.test.ts            Geçmiş parametreleri; TEST_DATABASE_URL ile veritabanı testi
 ```
 
 ## Yeni kaynak ekleme
