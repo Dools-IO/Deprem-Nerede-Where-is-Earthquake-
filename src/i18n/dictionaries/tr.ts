@@ -44,6 +44,9 @@ const tr = {
     sortBy: 'Sırala',
     sortNewest: 'En yeni',
     sortStrongest: 'En büyük',
+    // Altbilgi: önce + bağlantı (dools.co) + sonra
+    productOfBefore: 'Bu app bir ',
+    productOfAfter: ' ürünüdür',
   },
   live: {
     statTotal: (h: number) => `Son ${h} saat`,

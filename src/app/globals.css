@@ -16,7 +16,8 @@ body {
     linear-gradient(rgba(148, 163, 184, 0.045) 1px, transparent 1px) 0 0 / 40px 40px,
     linear-gradient(90deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px) 0 0 / 40px 40px,
     #060b18;
-  min-height: calc(100dvh - 4rem);
+  /* 4rem üst bar + 2.25rem altbilgi */
+  min-height: calc(100dvh - 6.25rem);
 }
 
 @layer components {

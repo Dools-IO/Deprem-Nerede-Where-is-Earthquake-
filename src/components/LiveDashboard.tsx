@@ -83,7 +83,7 @@ export default function LiveDashboard({ initial }: { initial: EarthquakeFeed | n
   }, [visible, query, locale]);
 
   return (
-    <div className="relative flex h-[calc(100dvh-4rem)] w-full overflow-hidden bg-ink-950 text-slate-100">
+    <div className="relative flex h-[calc(100dvh-6.25rem)] w-full overflow-hidden bg-ink-950 text-slate-100">
       <div className="absolute inset-0">
         <LiveMap
           earthquakes={visible}
