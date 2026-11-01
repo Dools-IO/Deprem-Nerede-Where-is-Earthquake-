@@ -5,6 +5,7 @@ import Script from 'next/script';
 import { getDictionary, LOCALES } from '@/i18n';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import { pageMetadata, resolveLocale } from '@/i18n/metadata';
+import SiteFooter from '@/components/SiteFooter';
 import SiteHeader from '@/components/SiteHeader';
 
 const inter = Inter({ subsets: ['latin', 'latin-ext'], variable: '--font-sans' });
@@ -50,6 +51,7 @@ export default async function RootLayout({ children, params }: Params & { childr
         <I18nProvider locale={locale}>
           <SiteHeader />
           <main>{children}</main>
+          <SiteFooter />
         </I18nProvider>
       </body>
     </html>

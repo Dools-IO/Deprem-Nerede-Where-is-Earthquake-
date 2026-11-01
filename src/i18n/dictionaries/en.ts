@@ -42,6 +42,8 @@ const en: Dictionary = {
     sortBy: 'Sort',
     sortNewest: 'Newest',
     sortStrongest: 'Strongest',
+    productOfBefore: 'This app is a ',
+    productOfAfter: ' product',
   },
   live: {
     statTotal: (h: number) => `Last ${h} hours`,
